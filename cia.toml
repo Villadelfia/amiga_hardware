@@ -1,0 +1,42 @@
+title = "CIA"
+short_info = "Contains all cia addresses and relevant bitfields."
+
+
+extra = """
+CIAA        equ $00bfe001
+CIAB        equ $00bfd000
+*
+CIAAPRA     equ CIAA+ciapra                      ;/FIR1 /FIR0  /RDY /TK0  /WPRO /CHNG /LED  OVL
+CIAAPRB     equ CIAA+ciaprb                      ;Parallel port
+CIAADDRA    equ CIAA+ciaddra                     ;Direction for port A (BFE001), 1=output (set to 0x03)
+CIAADDRB    equ CIAA+ciaddrb                     ;Direction for port B (BFE101), 1=output (in or out)
+CIAATALO    equ CIAA+ciatalo                     ;CIAA timer A low byte (.715909 Mhz NTSC, .709379 Mhz PAL)
+CIAATAHI    equ CIAA+ciatahi                     ;CIAA timer A high byte
+CIAATBLO    equ CIAA+ciatblo                     ;CIAA timer B low byte (.715909 Mhz NTSC, .709379 Mhz PAL)
+CIAATBHI    equ CIAA+ciatbhi                     ;CIAA timer B high byte
+CIAATODLO   equ CIAA+ciatodlow                   ;50/60 Hz event counter bits 7-0 (VSync or line tick)
+CIAATODMID  equ CIAA+ciatodmid                   ;50/60 Hz event counter bits 15-8
+CIAATODHI   equ CIAA+ciatodhi                    ;50/60 Hz event counter bits 23-16
+CIAANOTUSED equ $BFEB01                          ;not used
+CIAASDR     equ CIAA+ciasdr                      ;CIAA serial data register (connected to keyboard)
+CIAAICR     equ CIAA+ciaicr                      ;CIAA interrupt control register
+CIAACRA     equ CIAA+ciacra                      ;CIAA control register A
+CIAACRB     equ CIAA+ciacrb                      ;CIAA control register B
+*
+CIABPRA     equ CIAA+ciapra                      ;/DTR  /RTS  /CD   /CTS  /DSR   SEL   POUT  BUSY
+CIABPRB     equ CIAA+ciaprb                      ;/MTR  /SEL3 /SEL2 /SEL1 /SEL0 /SIDE  DIR  /STEP
+CIABDDRA    equ CIAA+ciaddra                     ;Direction for Port A (BFD000), 1 = output (set to 0xFF)
+CIABDDRB    equ CIAA+ciaddrb                     ;Direction for Port B (BFD100), 1 = output (set to 0xFF)
+CIABTALO    equ CIAA+ciatalo                     ;CIAB timer A low byte (.715909 Mhz NTSC, .709379 Mhz PAL)
+CIABTAHI    equ CIAA+ciatahi                     ;CIAB timer A high byte
+CIABTBLO    equ CIAA+ciatblo                     ;CIAB timer B low byte (.715909 Mhz NTSC, .709379 Mhz PAL)
+CIABTBHI    equ CIAA+ciatbhi                     ;CIAB timer B high byte
+CIABTODLO   equ CIAA+ciatodlow                   ;Horizontal sync event counter bits 7-0
+CIABTODMID  equ CIAA+ciatodmid                   ;Horizontal sync event counter bits 15-8
+CIABTODHI   equ CIAA+ciatodhi                    ;Horizontal sync event counter bits 23-16
+CIABNOTUSED equ $BFDB00                          ;not used
+CIABSDR     equ CIAA+ciasdr                      ;CIAB serial data register (unused)
+CIABICR     equ CIAA+ciaicr                      ;CIAB interrupt control register
+CIABCRA     equ CIAA+ciacra                      ;CIAB Control register A
+CIABCRB     equ CIAA+ciacrb                      ;CIAB Control register B
+"""

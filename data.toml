@@ -1,0 +1,4 @@
+chipset = "AGA"
+output = "prologue.i"
+sections = ["custom", "cia", "copper", "exec", "lvo"]
+header = "This file contains all the bare metal register names and descriptions one might need for low-level amiga assembly programming."

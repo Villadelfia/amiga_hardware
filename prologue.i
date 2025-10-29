@@ -1,5 +1,5 @@
-            IFND    PROLOGUE_I
-PROLOGUE_I  SET     1
+                      IFND PROLOGUE_I
+PROLOGUE_I            SET 1
 **
 **  This file contains all the bare metal register names and descriptions one
 **  might need for low-level amiga assembly programming.
@@ -9,6 +9,7 @@ PROLOGUE_I  SET     1
 **    - CIA: Contains all cia addresses and relevant bitfields.
 **    - COPPER: Contains some useful copper instruction building blocks.
 **    - EXEC: Common LVOs and utilities to call into exec.
+**    - LVO: Other common LVOs.
 **
 ********************************************************************************
 
@@ -24,10 +25,10 @@ PROLOGUE_I  SET     1
 *
 *   Flags that define a set of bits will only define the F variant, and it will
 *   be set to a literal with only those bits set.
-*   
+*
 *   Flags relevant to multiple registers are defined in the same ways as flags
 *   relevant to just one register, except the number in the register name is
-*   replaced with X. For example SPR0CTLN_ATT to SPR7CTLN_ATT will instead be 
+*   replaced with X. For example SPR0CTLN_ATT to SPR7CTLN_ATT will instead be
 *   defined as SPRXCTLN_ATT.
 *
 *   Strobe registers will have a "flag" named REGISTERF_STROBE, with a value of
@@ -47,13 +48,13 @@ PROLOGUE_I  SET     1
 *     - Write-only: REFPTR, SERPER, AUD0PER, AUD1PER, AUD2PER, AUD3PER, HCENTER
 *     - Strobe: STRHOR
 *
-*   Registers that have a PT(H/L) suffix are chip memory pointers that address 
-*   DMA data. Must be reloaded by a processor before use (vertical blank for 
+*   Registers that have a PT(H/L) suffix are chip memory pointers that address
+*   DMA data. Must be reloaded by a processor before use (vertical blank for
 *   bitplane and sprite pointers, and prior to starting the blitter for blitter
 *   pointers).
 *
-*   Registers that have an LC(H/L) suffix are chip memory locations (starting 
-*   addresses) of DMA data. Used to automatically restart pointers, such as the 
+*   Registers that have an LC(H/L) suffix are chip memory locations (starting
+*   addresses) of DMA data. Used to automatically restart pointers, such as the
 *   Copper program counter (during vertical blank) and the audio sample counter
 *   (whenever the audio length count is finished).
 *
@@ -63,7 +64,7 @@ PROLOGUE_I  SET     1
 *
 *   This is the memory location at which the custom chips are located.
 *
-CUSTOM                  = $00DFF000
+CUSTOM                = $DFF000
 *
 ********************************************************************************
 
@@ -71,137 +72,89 @@ CUSTOM                  = $00DFF000
 
 *** DSKBYTR ********************************************************************
 *
-*   Relative address: $001A
+*   Relative address: $01A
 *   Read/write:       Read
 *   Chip:             Paula
 *   Function:         Disk data byte and status
 *
-*   This register is the disk-microprocessor data buffer. Data from the disk (in
-*   read mode) is loaded into this register one byte at a time, and bit 15 
-*   (DSKBYT) is set to true.
+DSKBYTR               = $01A
 *
-DSKBYTR                 = $001A
+CUSTOM_DSKBYTR        = CUSTOM+DSKBYTR
 *
-CUSTOM_DSKBYTR          = CUSTOM+DSKBYTR
+DSKBYTRB_DSKBYT       = 15
+DSKBYTRB_DMAON        = 14
+DSKBYTRB_DISKWRITE    = 13
+DSKBYTRB_WORDEQUAL    = 12
 *
-*   BIT#  FLAG      DESCRIPTION
-*   ----- --------- ------------------------------------------------------------
-*   15    DSKBYT    Disk byte ready. (Reset on read.)
-*   14    DMAON     AND of DMAEN of DSKLEN and DMACON.
-*   13    DISKWRITE Mirror of WRITE in DSKLEN. 
-*   12    WORDEQUAL True if and only DATA equals DSKSYNC.
-*   07-00 DATA      Disk data byte.
+DSKBYTRF_DSKBYT       = (1<<15)
+DSKBYTRF_DMAON        = (1<<14)
+DSKBYTRF_DISKWRITE    = (1<<13)
+DSKBYTRF_WORDEQUAL    = (1<<12)
 *
-DSKBYTRB_DSKBYT         = 15
-DSKBYTRF_DSKBYT         = (1<<15)
-*
-DSKBYTRB_DMAON          = 14
-DSKBYTRF_DMAON          = (1<<14)
-*
-DSKBYTRB_DISKWRITE      = 13
-DSKBYTRF_DISKWRITE      = (1<<13)
-*
-DSKBYTRB_WORDEQUAL      = 12
-DSKBYTRF_WORDEQUAL      = (1<<12)
-*
-DSKBYTRF_DATA           = $00FF
+DSKBYTRF_DATA         = $00FF
 *
 ********************************************************************************
 
 *** DSKPT (DSKPTH + DSKPTL) ****************************************************
 *
-*   Relative address: $0020 + $0022
+*   Relative address: $020 + $022
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Disk pointer
 *
-*   This pair of registers contains the 18-bit address of disk DMA data. These 
-*   address registers must be initialized by the processor or Copper before disk
-*   DMA is enabled.
+DSKPT                 = $020
+DSKPTH                = DSKPT
+DSKPTL                = $022
 *
-*   NOTE: Can be written to with a single MOVE.L instruction.
-*
-*   OCS: The low word's LSB is ignored and is assumed to be an even address.
-*        Only the 3 least significant bits in the high word are considered.
-*   ECS: As OCS, except the 5 least significant bits in the high word are
-*        considered.
-*   AGA: As ECS, except all bits in the high word are considered.
-*
-DSKPT                   = $0020
-DSKPTH                  = DSKPT
-DSKPTL                  = $0022
-*
-CUSTOM_DSKPT            = CUSTOM+DSKPT
-CUSTOM_DSKPTH           = CUSTOM+DSKPTH
-CUSTOM_DSKPTL           = CUSTOM+DSKPTL
+CUSTOM_DSKPT          = CUSTOM+DSKPT
+CUSTOM_DSKPTH         = CUSTOM+DSKPTH
+CUSTOM_DSKPTL         = CUSTOM+DSKPTL
 *
 ********************************************************************************
 
 *** DSKLEN *********************************************************************
 *
-*   Relative address: $0024
+*   Relative address: $024
 *   Read/write:       Write
 *   Chip:             Paula
 *   Function:         Disk length
 *
-*   This register contains the length (number of words) of disk DMA data. It 
-*   also contains two control bits, a DMA enable bit, and a DMA direction 
-*   (read/write) bit.
+DSKLEN                = $024
 *
-DSKLEN                  = $0024
+CUSTOM_DSKLEN         = CUSTOM+DSKLEN
 *
-CUSTOM_DSKLEN           = CUSTOM+DSKLEN
+DSKLENB_DMAEN         = 15
+DSKLENB_WRITE         = 14
 *
-*   BIT# FLAG  DESCRIPTION
-*   ---- ----- -----------------------------------------------------------------
-*   15   DMAEN Disk DMA enable.
-*   14   WRITE Disk write (ram to disk) if 1.
-*   13-0 LEN   Length (number of words) of DMA data.
-*
-DSKLENB_DMAEN           = 15
-DSKLENF_DMAEN           = (1<<15)
-*
-DSKLENB_WRITE           = 14
-DSKLENF_WRITE           = (1<<14)
-*
-DSKLENF_LEN             = $3FFF
+DSKLENF_DMAEN         = (1<<15)
+DSKLENF_WRITE         = (1<<14)
+DSKLENF_LEN           = $3FFF
 *
 ********************************************************************************
 
 *** DSKDAT *********************************************************************
 *
-*   Relative address: $0026
+*   Relative address: $026
 *   Read/write:       Write
 *   Chip:             Paula
 *   Function:         Disk DMA data write
 *
-*   This register is the disk DMA data buffer. It contains two bytes of data 
-*   that are either sent (written) to or received (read) from the disk. The 
-*   write mode is enabled by bit 14 of the LENGTH register. The DMA controller 
-*   automatically transfers data to or from this register and RAM, and when the
-*   DMA data is finished (length=0) it causes a disk block interrupt.
+DSKDAT                = $026
 *
-*   DSKDATR does exist, but it cannot be accessed. See the dummy registers 
-*   section.
-*
-DSKDAT                  = $0026
-*
-CUSTOM_DSKDAT           = CUSTOM+DSKDAT
+CUSTOM_DSKDAT         = CUSTOM+DSKDAT
 *
 ********************************************************************************
 
 *** DSKSYNC ********************************************************************
 *
-*   Relative address: $007E
+*   Relative address: $07E
 *   Read/write:       Write
 *   Chip:             Paula
 *   Function:         Disk sync register
 *
-*   Holds the match code for disk read synchronization. See ADKCON.
+DSKSYNC               = $07E
 *
-DSKSYNC                 = $007E
-*
-CUSTOM_DSKSYNC          = CUSTOM+DSKSYNC
+CUSTOM_DSKSYNC        = CUSTOM+DSKSYNC
 *
 ********************************************************************************
 
@@ -209,455 +162,334 @@ CUSTOM_DSKSYNC          = CUSTOM+DSKSYNC
 
 *** BLTCONx ********************************************************************
 *
-*   Relative address: $0040 & $0042
+*   Relative address: $040 & $042
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Blitter control registers
 *
-*   These two control registers are used together to control blitter operations.
-*   There are two basic modes, area and line, which are selected by bit 0 of 
-*   BLTCON1, as shown below.
+BLTCON0               = $040
+BLTCON1               = $042
 *
-*   ECS: Flag DOFF in BLTCON1 is only available on ECS.
+CUSTOM_BLTCON0        = CUSTOM+BLTCON0
+CUSTOM_BLTCON1        = CUSTOM+BLTCON1
 *
-BLTCON0                 = $0040
-BLTCON1                 = $0042
+BLTCON0B_ASH3         = 15
+BLTCON0B_ASH2         = 14
+BLTCON0B_ASH1         = 13
+BLTCON0B_ASH0         = 12
+BLTCON0F_ASH          = $F000
+BLTCON0F_ASH3         = (1<<15)
+BLTCON0F_ASH2         = (1<<14)
+BLTCON0F_ASH1         = (1<<13)
+BLTCON0F_ASH0         = (1<<12)
 *
-CUSTOM_BLTCON0          = CUSTOM+BLTCON0
-CUSTOM_BLTCON1          = CUSTOM+BLTCON1
+BLTCON0B_START3       = 15
+BLTCON0B_START2       = 14
+BLTCON0B_START1       = 13
+BLTCON0B_START0       = 12
+BLTCON0F_START        = $F000
+BLTCON0F_START3       = (1<<15)
+BLTCON0F_START2       = (1<<14)
+BLTCON0F_START1       = (1<<13)
+BLTCON0F_START0       = (1<<12)
 *
-*   AREA                  LINE
-*   --------------------  ----------------
-*   BIT# BLTCON0 BLTCON1  BLTCON0 BLTCON1
-*   ---- ------- -------  ------- --------
-*   15   ASH3    BSH3     START3  TEXTURE3
-*   14   ASH2    BSH2     START2  TEXTURE2
-*   13   ASH1    BSH1     START1  TEXTURE1
-*   12   ASH0    BSH0     START0  TEXTURE0
-*   11   USEA    0        1       0
-*   10   USEB    0        0       0
-*   09   USEC    0        1       0
-*   08   USED    0        1       0
-*   07   LF7     DOFF     LF7     DOFF
-*   06   LF6     0        LF6     SIGN
-*   05   LF5     0        LF5     OVF
-*   04   LF4     EFE      LF4     SUD
-*   03   LF3     IFE      LF3     SUL
-*   02   LF2     FCI      LF2     AUL
-*   01   LF1     DESC     LF1     SING
-*   00   LF0     LINE(0)  LF0     LINE(1)
+BLTCON1B_BSH3         = 15
+BLTCON1B_BSH2         = 14
+BLTCON1B_BSH1         = 13
+BLTCON1B_BSH0         = 12
+BLTCON1F_BSH          = $F000
+BLTCON1F_BSH3         = (1<<15)
+BLTCON1F_BSH2         = (1<<14)
+BLTCON1F_BSH1         = (1<<13)
+BLTCON1F_BSH0         = (1<<12)
 *
-BLTCON0B_ASH3           = 15
-BLTCON0B_ASH2           = 14
-BLTCON0B_ASH1           = 13
-BLTCON0B_ASH0           = 12
-BLTCON0F_ASH            = $F000
-BLTCON0F_ASH3           = (1<<15)
-BLTCON0F_ASH2           = (1<<14)
-BLTCON0F_ASH1           = (1<<13)
-BLTCON0F_ASH0           = (1<<12)
+BLTCON1B_TEXTURE3     = 15
+BLTCON1B_TEXTURE2     = 14
+BLTCON1B_TEXTURE1     = 13
+BLTCON1B_TEXTURE0     = 12
+BLTCON1F_TEXTURE      = $F000
+BLTCON1F_TEXTURE3     = (1<<15)
+BLTCON1F_TEXTURE2     = (1<<14)
+BLTCON1F_TEXTURE1     = (1<<13)
+BLTCON1F_TEXTURE0     = (1<<12)
 *
-BLTCON0B_START3         = 15
-BLTCON0B_START2         = 14
-BLTCON0B_START1         = 13
-BLTCON0B_START0         = 12
-BLTCON0F_START          = $F000
-BLTCON0F_START3         = (1<<15)
-BLTCON0F_START2         = (1<<14)
-BLTCON0F_START1         = (1<<13)
-BLTCON0F_START0         = (1<<12)
+BLTCON0B_USEA         = 11
+BLTCON0B_USEB         = 10
+BLTCON0B_USEC         = 9
+BLTCON0B_USED         = 8
+BLTCON0F_USE          = $F00
+BLTCON0F_USEA         = (1<<11)
+BLTCON0F_USEB         = (1<<10)
+BLTCON0F_USEC         = (1<<9)
+BLTCON0F_USED         = (1<<8)
+BLTCON0F_USE_LINE     = $B00
 *
-BLTCON1B_BSH3           = 15
-BLTCON1B_BSH2           = 14
-BLTCON1B_BSH1           = 13
-BLTCON1B_BSH0           = 12
-BLTCON1F_BSH            = $F000
-BLTCON1F_BSH3           = (1<<15)
-BLTCON1F_BSH2           = (1<<14)
-BLTCON1F_BSH1           = (1<<13)
-BLTCON1F_BSH0           = (1<<12)
+BLTCON0B_LF7          = 7
+BLTCON0B_LF6          = 6
+BLTCON0B_LF5          = 5
+BLTCON0B_LF4          = 4
+BLTCON0B_LF3          = 3
+BLTCON0B_LF2          = 2
+BLTCON0B_LF1          = 1
+BLTCON0B_LF0          = 0
+BLTCON0F_LF           = $00FF
+BLTCON0F_LF7          = (1<<7)
+BLTCON0F_LF6          = (1<<6)
+BLTCON0F_LF5          = (1<<5)
+BLTCON0F_LF4          = (1<<4)
+BLTCON0F_LF3          = (1<<3)
+BLTCON0F_LF2          = (1<<2)
+BLTCON0F_LF1          = (1<<1)
+BLTCON0F_LF0          = (1<<0)
 *
-BLTCON1B_TEXTURE3       = 15
-BLTCON1B_TEXTURE2       = 14
-BLTCON1B_TEXTURE1       = 13
-BLTCON1B_TEXTURE0       = 12
-BLTCON1F_TEXTURE        = $F000
-BLTCON1F_TEXTURE3       = (1<<15)
-BLTCON1F_TEXTURE2       = (1<<14)
-BLTCON1F_TEXTURE1       = (1<<13)
-BLTCON1F_TEXTURE0       = (1<<12)
+BLTCON1B_DOFF         = 7
+BLTCON1F_DOFF         = (1<<7)
 *
-BLTCON0B_USEA           = 11
-BLTCON0B_USEB           = 10
-BLTCON0B_USEC           = 9
-BLTCON0B_USED           = 8
-BLTCON0F_USE            = $0F00
-BLTCON0F_USEA           = (1<<11)
-BLTCON0F_USEB           = (1<<10)
-BLTCON0F_USEC           = (1<<9)
-BLTCON0F_USED           = (1<<8)
-BLTCON0F_USE_LINE       = $0B00
+BLTCON1B_SIGN         = 6
+BLTCON1F_SIGN         = (1<<6)
 *
-BLTCON0B_LF7            = 7
-BLTCON0B_LF6            = 6
-BLTCON0B_LF5            = 5
-BLTCON0B_LF4            = 4
-BLTCON0B_LF3            = 3
-BLTCON0B_LF2            = 2
-BLTCON0B_LF1            = 1
-BLTCON0B_LF0            = 0
-BLTCON0F_LF             = $00FF
-BLTCON0F_LF7            = (1<<7)
-BLTCON0F_LF6            = (1<<6)
-BLTCON0F_LF5            = (1<<5)
-BLTCON0F_LF4            = (1<<4)
-BLTCON0F_LF3            = (1<<3)
-BLTCON0F_LF2            = (1<<2)
-BLTCON0F_LF1            = (1<<1)
-BLTCON0F_LF0            = (1<<0)
+BLTCON1B_OVF          = 5
+BLTCON1F_OVF          = (1<<5)
 *
-BLTCON1B_DOFF           = 7
-BLTCON1F_DOFF           = (1<<7)
+BLTCON1B_EFE          = 4
+BLTCON1B_SUD          = 4
+BLTCON1F_EFE          = (1<<4)
+BLTCON1F_SUD          = (1<<4)
 *
-BLTCON1B_SIGN           = 6
-BLTCON1F_SIGN           = (1<<6)
+BLTCON1B_IFE          = 3
+BLTCON1B_SUL          = 3
+BLTCON1F_IFE          = (1<<3)
+BLTCON1F_SUL          = (1<<3)
 *
-BLTCON1B_OVF            = 5
-BLTCON1F_OVF            = (1<<5)
+BLTCON1B_FCI          = 2
+BLTCON1B_AUL          = 2
+BLTCON1F_FCI          = (1<<2)
+BLTCON1F_AUL          = (1<<2)
 *
-BLTCON1B_EFE            = 4
-BLTCON1B_SUD            = 4
-BLTCON1F_EFE            = (1<<4)
-BLTCON1F_SUD            = (1<<4)
+BLTCON1B_DESC         = 1
+BLTCON1B_SING         = 1
+BLTCON1B_ONEDOT       = 1
+BLTCON1F_DESC         = (1<<1)
+BLTCON1F_SING         = (1<<1)
+BLTCON1F_ONEDOT       = (1<<1)
 *
-BLTCON1B_IFE            = 3
-BLTCON1B_SUL            = 3
-BLTCON1F_IFE            = (1<<3)
-BLTCON1F_SUL            = (1<<3)
+BLTCON1B_LINE         = 0
+BLTCON1F_LINE         = (1<<0)
 *
-BLTCON1B_FCI            = 2
-BLTCON1B_AUL            = 2
-BLTCON1F_FCI            = (1<<2)
-BLTCON1F_AUL            = (1<<2)
+BLTCON1F_OCTANT0      = $18
+BLTCON1F_OCTANT1      = $04
+BLTCON1F_OCTANT2      = $0C
+BLTCON1F_OCTANT3      = $1C
+BLTCON1F_OCTANT4      = $14
+BLTCON1F_OCTANT5      = $08
+BLTCON1F_OCTANT6      = $00
+BLTCON1F_OCTANT7      = $10
 *
-BLTCON1B_DESC           = 1
-BLTCON1B_SING           = 1
-BLTCON1B_ONEDOT         = 1
-BLTCON1F_DESC           = (1<<1)
-BLTCON1F_SING           = (1<<1)
-BLTCON1F_ONEDOT         = (1<<1)
+BLTCON0F_LF_NOP       = $00
+BLTCON0F_LF_xxx       = $FF
+BLTCON0F_LF_Axx       = $F0
+BLTCON0F_LF_axx       = $0F
+BLTCON0F_LF_xBx       = $CC
+BLTCON0F_LF_ABx       = $C0
+BLTCON0F_LF_aBx       = $0C
+BLTCON0F_LF_xbx       = $33
+BLTCON0F_LF_Abx       = $30
+BLTCON0F_LF_abx       = $03
+BLTCON0F_LF_xxC       = $AA
+BLTCON0F_LF_AxC       = $A0
+BLTCON0F_LF_axC       = $0A
+BLTCON0F_LF_xBC       = $88
+BLTCON0F_LF_ABC       = $80
+BLTCON0F_LF_aBC       = $08
+BLTCON0F_LF_xbC       = $22
+BLTCON0F_LF_AbC       = $20
+BLTCON0F_LF_abC       = $02
+BLTCON0F_LF_xxc       = $55
+BLTCON0F_LF_Axc       = $50
+BLTCON0F_LF_axc       = $05
+BLTCON0F_LF_xBc       = $44
+BLTCON0F_LF_ABc       = $40
+BLTCON0F_LF_aBc       = $04
+BLTCON0F_LF_xbc       = $11
+BLTCON0F_LF_Abc       = $10
+BLTCON0F_LF_abc       = $01
 *
-BLTCON1B_LINE           = 0
-BLTCON1F_LINE           = (1<<0)
+BLTCON0F_MINTERM_ABC  = $80
+BLTCON0F_MINTERM_ABc  = $40
+BLTCON0F_MINTERM_AbC  = $20
+BLTCON0F_MINTERM_Abc  = $10
+BLTCON0F_MINTERM_aBC  = $08
+BLTCON0F_MINTERM_aBc  = $04
+BLTCON0F_MINTERM_abC  = $02
+BLTCON0F_MINTERM_abc  = $01
 *
-*   Conveniences for the octant in line mode.
-*
-BLTCON1F_OCTANT0        = $18
-BLTCON1F_OCTANT1        = $04
-BLTCON1F_OCTANT2        = $0C
-BLTCON1F_OCTANT3        = $1C
-BLTCON1F_OCTANT4        = $14
-BLTCON1F_OCTANT5        = $08
-BLTCON1F_OCTANT6        = $00
-BLTCON1F_OCTANT7        = $10
-*
-*   Logic function helpers.
-*
-*   These are all the possible basic building blocks for the logic function.
-*   Every building block has one of three values for A, B, and C:
-*     - Set: A, B, or C.
-*     - Not set: a, b, or c.
-*     - Don't care: x.
-*
-*   Examples: 
-*     - Axx: A, because we don't care about B and C.
-*     - ABx: A and B, because we don't care about C.
-*     - AbC: A, not B, and C.
-*
-*   You can binary or several of these building blocks together to represent the
-*   logical or of these functions. So (ABx | Axc) represents (A and B) or (A and
-*   not C.)
-*
-BLTCON0F_LF_NOP         = $00
-BLTCON0F_LF_xxx         = $FF
-BLTCON0F_LF_Axx         = $F0
-BLTCON0F_LF_axx         = $0F
-BLTCON0F_LF_xBx         = $CC
-BLTCON0F_LF_ABx         = $C0
-BLTCON0F_LF_aBx         = $0C
-BLTCON0F_LF_xbx         = $33
-BLTCON0F_LF_Abx         = $30
-BLTCON0F_LF_abx         = $03
-BLTCON0F_LF_xxC         = $AA
-BLTCON0F_LF_AxC         = $A0
-BLTCON0F_LF_axC         = $0A
-BLTCON0F_LF_xBC         = $88
-BLTCON0F_LF_ABC         = $80
-BLTCON0F_LF_aBC         = $08
-BLTCON0F_LF_xbC         = $22
-BLTCON0F_LF_AbC         = $20
-BLTCON0F_LF_abC         = $02
-BLTCON0F_LF_xxc         = $55
-BLTCON0F_LF_Axc         = $50
-BLTCON0F_LF_axc         = $05
-BLTCON0F_LF_xBc         = $44
-BLTCON0F_LF_ABc         = $40
-BLTCON0F_LF_aBc         = $04
-BLTCON0F_LF_xbc         = $11
-BLTCON0F_LF_Abc         = $10
-BLTCON0F_LF_abc         = $01
-*
-*   Redefinitions of some of the above in minterm terms.
-*
-BLTCON0F_MINTERM_ABC    = $80
-BLTCON0F_MINTERM_ABc    = $40
-BLTCON0F_MINTERM_AbC    = $20
-BLTCON0F_MINTERM_Abc    = $10
-BLTCON0F_MINTERM_aBC    = $08
-BLTCON0F_MINTERM_aBc    = $04
-BLTCON0F_MINTERM_abC    = $02
-BLTCON0F_MINTERM_abc    = $01
-*   
-*   Convience logic functions for line mode.
-*
-*   OVER = ABx + axx
-*   XOR  = ABc + Axc
-*
-BLTCON0F_LF_LINE_OVER   = $CF
-BLTCON0F_LF_LINE_XOR    = $4A
+BLTCON0F_LF_LINE_OVER = $CF
+BLTCON0F_LF_LINE_XOR  = $4A
 *
 ********************************************************************************
 
 *** BLTAFWM & BLTALWM **********************************************************
 *
-*   Relative address: $0044 & $0046
+*   Relative address: $044 & $046
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Blitter first/last-word mask for source A
 *
-*   The patterns in these two registers are ANDed with the first and last words
-*   of each line of data from source A into the blitter. A zero in any bit 
-*   overrides data from source A. These registers should be set to all 1s for 
-*   fill mode or for line-drawing mode.
+BLTAFWM               = $044
+BLTALWM               = $046
 *
-BLTAFWM                 = $0044
-BLTALWM                 = $0046
-*
-CUSTOM_BLTAFWM          = CUSTOM+BLTAFWM
-CUSTOM_BLTALWM          = CUSTOM+BLTALWM
+CUSTOM_BLTAFWM        = CUSTOM+BLTAFWM
+CUSTOM_BLTALWM        = CUSTOM+BLTALWM
 *
 ********************************************************************************
 
 *** BLTxPT (BLTxPTH + BLTxPTL) *************************************************
 *
-*   Relative address: $0048 + $004A & $004C + $004E & 
-*                     $0050 + $0052 & $0054 + $0056
+*   Relative address: $048 + $04A & $04C + $04E &
+*                     $050 + $052 & $054 + $056
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Blitter pointer to A/B/C/D
 *
-*   This pair of registers contains the 18-bit address of blitter source 
-*   (x=A,B,C) or destination (x=D) DMA data. This pointer must be preloaded with
-*   the starting address of the data to be processed by the blitter. After the 
-*   blitter is finished, it will contain the last data address (plus increment
-*   and modulo).
+BLTCPT                = $048
+BLTCPTH               = BLTCPT
+BLTCPTL               = $04A
+BLTBPT                = $04C
+BLTBPTH               = BLTBPT
+BLTBPTL               = $04E
+BLTAPT                = $050
+BLTAPTH               = BLTAPT
+BLTAPTL               = $052
+BLTDPT                = $054
+BLTDPTH               = BLTDPT
+BLTDPTL               = $056
 *
-*   Line mode: BLTAPTL is used as an accumulator register and must be preloaded
-*              with the starting value of (2Y-X) where Y/X is the line slope. 
-*              BLTCPT and BLTDPT (both H and L) must be preloaded with the 
-*              starting address of the line.
-*
-*   NOTE: Can be written to with a single MOVE.L instruction.
-*
-*   OCS: The low word's LSB is ignored and is assumed to be an even address.
-*        Only the 3 least significant bits in the high word are considered.
-*   ECS: As OCS, except the 5 least significant bits in the high word are
-*        considered.
-*   AGA: As ECS, except all bits in the high word are considered.
-*
-BLTCPT                  = $0048          
-BLTCPTH                 = BLTCPT
-BLTCPTL                 = $004A
-BLTBPT                  = $004C          
-BLTBPTH                 = BLTBPT
-BLTBPTL                 = $004E
-BLTAPT                  = $0050          
-BLTAPTH                 = BLTAPT
-BLTAPTL                 = $0052
-BLTDPT                  = $0054          
-BLTDPTH                 = BLTDPT
-BLTDPTL                 = $0054
-*
-CUSTOM_BLTCPT           = CUSTOM+BLTCPT 
-CUSTOM_BLTCPTH          = CUSTOM+BLTCPTH
-CUSTOM_BLTCPTL          = CUSTOM+BLTCPTL
-CUSTOM_BLTBPT           = CUSTOM+BLTBPT         
-CUSTOM_BLTBPTH          = CUSTOM+BLTBPTH
-CUSTOM_BLTBPTL          = CUSTOM+BLTBPTL
-CUSTOM_BLTAPT           = CUSTOM+BLTAPT         
-CUSTOM_BLTAPTH          = CUSTOM+BLTAPTH
-CUSTOM_BLTAPTL          = CUSTOM+BLTAPTL
-CUSTOM_BLTDPT           = CUSTOM+BLTDPT         
-CUSTOM_BLTDPTH          = CUSTOM+BLTDPTH
-CUSTOM_BLTDPTL          = CUSTOM+BLTDPTL
+CUSTOM_BLTCPT         = CUSTOM+BLTCPT
+CUSTOM_BLTCPTH        = CUSTOM+BLTCPTH
+CUSTOM_BLTCPTL        = CUSTOM+BLTCPTL
+CUSTOM_BLTBPT         = CUSTOM+BLTBPT
+CUSTOM_BLTBPTH        = CUSTOM+BLTBPTH
+CUSTOM_BLTBPTL        = CUSTOM+BLTBPTL
+CUSTOM_BLTAPT         = CUSTOM+BLTAPT
+CUSTOM_BLTAPTH        = CUSTOM+BLTAPTH
+CUSTOM_BLTAPTL        = CUSTOM+BLTAPTL
+CUSTOM_BLTDPT         = CUSTOM+BLTDPT
+CUSTOM_BLTDPTH        = CUSTOM+BLTDPTH
+CUSTOM_BLTDPTL        = CUSTOM+BLTDPTL
 *
 ********************************************************************************
 
 *** BLTxDAT ********************************************************************
 *
-*   Relative address: $0070 & $0072 & $0074
+*   Relative address: $070 & $072 & $074
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Blitter source A/B/C data register
 *
-*   This register holds source x (x=A,B,C) data for use by the blitter. It is 
-*   normally loaded by the blitter DMA channel; however, it may also be 
-*   preloaded by the microprocessor.
+BLTCDAT               = $070
+BLTBDAT               = $072
+BLTADAT               = $074
 *
-*   Line mode: BLTADAT is used as an index register and must be preloaded with 
-*              8000. BLTBDAT is used for texture; it must be preloaded with FF 
-*              if no texture (solid line) is desired.
-*
-BLTCDAT                 = $0070
-BLTBDAT                 = $0072
-BLTADAT                 = $0074
-*
-CUSTOM_BLTCDAT          = CUSTOM+BLTCDAT
-CUSTOM_BLTBDAT          = CUSTOM+BLTBDAT
-CUSTOM_BLTADAT          = CUSTOM+BLTADAT
+CUSTOM_BLTCDAT        = CUSTOM+BLTCDAT
+CUSTOM_BLTBDAT        = CUSTOM+BLTBDAT
+CUSTOM_BLTADAT        = CUSTOM+BLTADAT
 *
 ********************************************************************************
 
 *** BLTxMOD ********************************************************************
 *
-*   Relative address: $0060 & $0062 & $0064 & $0066
+*   Relative address: $060 & $062 & $064 & $066
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Blitter modulo A/B/C/D
 *
-*   This register contains the modulo for blitter source (x=A,B,C) or 
-*   destination (x=D). A modulo is a number that is automatically added to the
-*   address at the end of each line, to make the address point to the start of 
-*   the next line. Each source or destination has its own modulo, allowing each
-*   to be a different size, while an identical area of each is used in the 
-*   blitter operation.
+BLTCMOD               = $060
+BLTBMOD               = $062
+BLTAMOD               = $064
+BLTDMOD               = $066
 *
-*   Line mode: BLTAMOD and BLTBMOD are used as slope storage registers and must 
-*              be preloaded with the values (4Y-4X) and (4Y) respectively. 
-*              Y/X= line slope. BLTCMOD and BLTDMOD must both be preloaded with
-*              the width (in bytes) of the image into which the line is being 
-*              drawn (normally two times the screen width in words).
-*
-BLTCMOD                 = $0060
-BLTBMOD                 = $0062
-BLTAMOD                 = $0064
-BLTDMOD                 = $0066
-*
-CUSTOM_BLTCMOD          = CUSTOM+BLTCMOD
-CUSTOM_BLTBMOD          = CUSTOM+BLTBMOD
-CUSTOM_BLTAMOD          = CUSTOM+BLTAMOD
-CUSTOM_BLTDMOD          = CUSTOM+BLTDMOD
+CUSTOM_BLTCMOD        = CUSTOM+BLTCMOD
+CUSTOM_BLTBMOD        = CUSTOM+BLTBMOD
+CUSTOM_BLTAMOD        = CUSTOM+BLTAMOD
+CUSTOM_BLTDMOD        = CUSTOM+BLTDMOD
 *
 ********************************************************************************
 
 *** BLTSIZE ********************************************************************
 *
-*   Relative address: $0058
+*   Relative address: $058
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Blitter start and size (window width, height)
 *
-*   This register contains the width and height of the blitter operation (in 
-*   line mode, width must = 2, height = line length). Writing to this register 
-*   will start the blitter, and should be done last, after all pointers and 
-*   control registers have been initialized.
+BLTSIZE               = $058
 *
-*   Line draw: BLTSIZE controls the line length and starts the line draw when 
-*              written to. The h field controls the line length (10 bits gives
-*              lines up to 1024 dots long). The w field must be set to 02 for 
-*              all line drawing.
+CUSTOM_BLTSIZE        = CUSTOM+BLTSIZE
 *
-BLTSIZE                 = $0058
+BLTSIZEB_HEIGHT9      = 15
+BLTSIZEB_HEIGHT8      = 14
+BLTSIZEB_HEIGHT7      = 13
+BLTSIZEB_HEIGHT6      = 12
+BLTSIZEB_HEIGHT5      = 11
+BLTSIZEB_HEIGHT4      = 10
+BLTSIZEB_HEIGHT3      = 9
+BLTSIZEB_HEIGHT2      = 8
+BLTSIZEB_HEIGHT1      = 7
+BLTSIZEB_HEIGHT0      = 6
+BLTSIZEF_HEIGHT       = $FFC0
+BLTSIZEF_HEIGHT9      = (1<<15)
+BLTSIZEF_HEIGHT8      = (1<<14)
+BLTSIZEF_HEIGHT7      = (1<<13)
+BLTSIZEF_HEIGHT6      = (1<<12)
+BLTSIZEF_HEIGHT5      = (1<<11)
+BLTSIZEF_HEIGHT4      = (1<<10)
+BLTSIZEF_HEIGHT3      = (1<<9)
+BLTSIZEF_HEIGHT2      = (1<<8)
+BLTSIZEF_HEIGHT1      = (1<<7)
+BLTSIZEF_HEIGHT0      = (1<<6)
 *
-CUSTOM_BLTSIZE          = CUSTOM+BLTSIZE
-*
-*   BIT#  15,14,13,12,11,10,09,08,07,06,05,04,03,02,01,00
-*         -----------------------------------------------
-*         h9 h8 h7 h6 h5 h4 h3 h2 h1 h0,w5 w4 w3 w2 w1 w0
-*
-*   h = height = vertical lines (10 bits = 1024 lines max)
-*   w = width = horizontal pixels (6 bits = 64 words = 1024 pixels max)
-*
-BLTSIZEB_HEIGHT9        = 15
-BLTSIZEB_HEIGHT8        = 14
-BLTSIZEB_HEIGHT7        = 13
-BLTSIZEB_HEIGHT6        = 12
-BLTSIZEB_HEIGHT5        = 11
-BLTSIZEB_HEIGHT4        = 10
-BLTSIZEB_HEIGHT3        = 9
-BLTSIZEB_HEIGHT2        = 8
-BLTSIZEB_HEIGHT1        = 7
-BLTSIZEB_HEIGHT0        = 6
-BLTSIZEF_HEIGHT         = $FFC0
-BLTSIZEF_HEIGHT9        = (1<<15)
-BLTSIZEF_HEIGHT8        = (1<<14)
-BLTSIZEF_HEIGHT7        = (1<<13)
-BLTSIZEF_HEIGHT6        = (1<<12)
-BLTSIZEF_HEIGHT5        = (1<<11)
-BLTSIZEF_HEIGHT4        = (1<<10)
-BLTSIZEF_HEIGHT3        = (1<<9)
-BLTSIZEF_HEIGHT2        = (1<<8)
-BLTSIZEF_HEIGHT1        = (1<<7)
-BLTSIZEF_HEIGHT0        = (1<<6)
-*
-BLTSIZEB_WIDTH5         = 5
-BLTSIZEB_WIDTH4         = 4
-BLTSIZEB_WIDTH3         = 3
-BLTSIZEB_WIDTH2         = 2
-BLTSIZEB_WIDTH1         = 1
-BLTSIZEB_WIDTH0         = 0
-BLTSIZEF_WIDTH          = $3F
-BLTSIZEF_WIDTH5         = (1<<5)
-BLTSIZEF_WIDTH4         = (1<<4)
-BLTSIZEF_WIDTH3         = (1<<3)
-BLTSIZEF_WIDTH2         = (1<<2)
-BLTSIZEF_WIDTH1         = (1<<1)
-BLTSIZEF_WIDTH0         = (1<<0)
+BLTSIZEB_WIDTH5       = 5
+BLTSIZEB_WIDTH4       = 4
+BLTSIZEB_WIDTH3       = 3
+BLTSIZEB_WIDTH2       = 2
+BLTSIZEB_WIDTH1       = 1
+BLTSIZEB_WIDTH0       = 0
+BLTSIZEF_WIDTH        = $3F
+BLTSIZEF_WIDTH5       = (1<<5)
+BLTSIZEF_WIDTH4       = (1<<4)
+BLTSIZEF_WIDTH3       = (1<<3)
+BLTSIZEF_WIDTH2       = (1<<2)
+BLTSIZEF_WIDTH1       = (1<<1)
+BLTSIZEF_WIDTH0       = (1<<0)
 *
 ********************************************************************************
 
 *** (ECS) BLTCON0L *************************************************************
 *
-*   Relative address: $005B
+*   Relative address: $05B
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         BLTCON0 lower 8 bits
-*
 *   Note: Byte access only. See also BLTCON0.
 *
-BLTCON0L                = $005B
+BLTCON0L              = $05B
 *
-CUSTOM_BLTCON0L         = CUSTOM+BLTCON0L
+CUSTOM_BLTCON0L       = CUSTOM+BLTCON0L
 *
 ********************************************************************************
 
-*** (ECS) BLTSIZV & BLTSIZH ****************************************************
+*** BLTSIZV & BLTSIZH **********************************************************
 *
-*   Relative address: $005C & $005E
+*   Relative address: $05C & $05E
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Blitter 15 bit height & blitter 11 bit width (+start)
 *
-*   These are the blitter size registers for blits larger than OCS could accept.
-*   The original BLTSIZE register is retained for compatibility. BLTSIZV should
-*   be written first, followed by BLTSIZH, which starts the blitter. BLTSIZV 
-*   need not be rewritten for subsequent blits if the vertical size is the same.
+BLTSIZV               = $05C
+BLTSIZH               = $05E
 *
-BLTSIZV                 = $005C
-BLTSIZH                 = $005E
-*
-CUSTOM_BLTSIZV          = CUSTOM+BLTSIZV
-CUSTOM_BLTSIZH          = CUSTOM+BLTSIZH
+CUSTOM_BLTSIZV        = CUSTOM+BLTSIZV
+CUSTOM_BLTSIZH        = CUSTOM+BLTSIZH
 *
 ********************************************************************************
 
@@ -665,78 +497,58 @@ CUSTOM_BLTSIZH          = CUSTOM+BLTSIZH
 
 *** COPCON *********************************************************************
 *
-*   Relative address: $002E
+*   Relative address: $02E
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Copper control register
 *
-*   This is a 1-bit register that when set true, allows the Copper to access the 
-*   blitter hardware. This bit is cleared by power-on reset, so that the Copper
-*   cannot access the blitter hardware.
+COPCON                = $02E
 *
-*   OCS: With the CDANG bit cleared, the copper can access: $DFF080 - $DFF1FE
-*        With the CDANG bit set, the copper can access:     $DFF03E - $DFF1FE
-*   ECS: With the CDANG bit cleared, the copper can access: $DFF03E - $DFF1FE
-*        With the CDANG bit set, the copper can access:     $DFF000 - $DFF1FE
+CUSTOM_COPCON         = CUSTOM+COPCON
 *
-COPCON                  = $002E
-*
-CUSTOM_COPCON           = CUSTOM+COPCON
-*
-COPCONB_CDANG           = 1
-COPCONF_CDANG           = (1<<1)
+COPCONB_CDANG         = 1
+COPCONF_CDANG         = (1<<1)
 *
 ********************************************************************************
 
 *** COPxLC (COPxLCH + COPxLCL) *************************************************
 *
-*   Relative address: $0080 + $0082 & $0084 + $0086
+*   Relative address: $080 + $082 & $084 + $086
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Copper list 1/2 pointer registers
 *
-*   These registers contain the jump addresses for the first and second copper
-*   lists.
+COP1LC                = $080
+COP1LCH               = COP1LC
+COP1LCL               = $082
+COP2LC                = $084
+COP2LCH               = COP2LC
+COP2LCL               = $086
 *
-*   NOTE: Can be written to with a single MOVE.L instruction.
-*
-*   OCS: The low word's LSB is ignored and is assumed to be an even address.
-*        Only the 3 least significant bits in the high word are considered.
-*   ECS: As OCS, except the 5 least significant bits in the high word are
-*        considered.
-*   AGA: As ECS, except all bits in the high word are considered.
-*
-COP1LC                  = $0080
-COP1LCH                 = COP1LC
-COP1LCL                 = $0082
-COP2LC                  = $0084
-COP2LCH                 = COP2LC
-COP2LCL                 = $0086
-*
-CUSTOM_COP1LC           = CUSTOM+COP1LC 
-CUSTOM_COP1LCH          = CUSTOM+COP1LCH
-CUSTOM_COP1LCL          = CUSTOM+COP1LCL
-CUSTOM_COP2LC           = CUSTOM+COP2LC 
-CUSTOM_COP2LCH          = CUSTOM+COP2LCH
-CUSTOM_COP2LCL          = CUSTOM+COP2LCL
+CUSTOM_COP1LC         = CUSTOM+COP1LC
+CUSTOM_COP1LCH        = CUSTOM+COP1LCH
+CUSTOM_COP1LCL        = CUSTOM+COP1LCL
+CUSTOM_COP2LC         = CUSTOM+COP2LC
+CUSTOM_COP2LCH        = CUSTOM+COP2LCH
+CUSTOM_COP2LCL        = CUSTOM+COP2LCL
 *
 ********************************************************************************
 
 *** COPJMPx ********************************************************************
 *
-*   Relative address: $0088 & $008A
+*   Relative address: $088 & $08A
 *   Read/write:       Strobe
 *   Chip:             Agnus
 *   Function:         Copper list 1/2 restart strobe
 *
-COPJMP1                 = $0088
-COPJMP2                 = $008A
+COPJMP1               = $088
+COPJMP2               = $08A
 *
-CUSTOM_COPJMP1          = CUSTOM+COPJMP1
-CUSTOM_COPJMP2          = CUSTOM+COPJMP2
+CUSTOM_COPJMP1        = CUSTOM+COPJMP1
+CUSTOM_COPJMP2        = CUSTOM+COPJMP2
 *
-COPJMP1F_STROBE         = $FFFF
-COPJMP2F_STROBE         = $FFFF
+COPJMP1F_STROBE       = $FFFF
+COPJMP2F_STROBE       = $FFFF
 *
 ********************************************************************************
 
@@ -744,232 +556,168 @@ COPJMP2F_STROBE         = $FFFF
 
 *** ADKCON & ADKCONR ***********************************************************
 *
-*   Relative address: $009E & $0010
+*   Relative address: $09E & $010
 *   Read/write:       Write & Read
 *   Chip:             Agnus
 *   Function:         Audio+disk control
 *
-ADKCON                  = $009E
-ADKCONR                 = $0010
+ADKCON                = $09E
+ADKCONR               = $010
 *
-CUSTOM_ADKCON           = CUSTOM+ADKCON 
-CUSTOM_ADKCONR          = CUSTOM+ADKCONR
+CUSTOM_ADKCON         = CUSTOM+ADKCON
+CUSTOM_ADKCONR        = CUSTOM+ADKCONR
 *
-*   BIT#  FLAG      DESCRIPTION
-*   ---- --------- ------------------------------------------------------------
-*   15    SETCLR    Determines if set bits get set or cleared
-*   14    PRECOMP1  Precompensation amount
-*   13    PRECOMP0  00=0ns, 01=140ns, 10=280ns, 11=560ns
-*   12    MFMPREC   MFM or GCR precompensation
-*   11    UARTBRK   Assert a UART break if set
-*   10    WORDSYNC  Enables disk read sync on word in DSKSYNC
-*   09    MSBSYNC   Enables sync on MSB for Apple GCR
-*   08    FAST      Set for 1-2us/bit, clear for 2-4us/bit
-*   07    USE3PN    Use audio channel 3 to modulate nothing
-*   06    USE2P3    Use audio channel 2 to modulate period of channel 3
-*   05    USE1P2    Use audio channel 1 to modulate period of channel 2
-*   04    USE0P1    Use audio channel 0 to modulate period of channel 1
-*   03    USE3VN    Use audio channel 3 to modulate nothing
-*   02    USE2V3    Use audio channel 2 to modulate volume of channel 3
-*   01    USE1V2    Use audio channel 1 to modulate volume of channel 2
-*   00    USE0V1    Use audio channel 0 to modulate volume of channel 1
+ADKCONB_SETCLR        = 15
+ADKCONB_PRECOMP1      = 14
+ADKCONB_PRECOMP0      = 13
+ADKCONB_MFMPREC       = 12
+ADKCONB_UARTBRK       = 11
+ADKCONB_WORDSYNC      = 10
+ADKCONB_MSBSYNC       = 9
+ADKCONB_FAST          = 8
+ADKCONF_SETCLR        = (1<<15)
+ADKCONF_PRECOMP1      = (1<<14)
+ADKCONF_PRECOMP0      = (1<<13)
+ADKCONF_MFMPREC       = (1<<12)
+ADKCONF_UARTBRK       = (1<<11)
+ADKCONF_WORDSYNC      = (1<<10)
+ADKCONF_MSBSYNC       = (1<<9)
+ADKCONF_FAST          = (1<<8)
 *
-ADKCONB_SETCLR          = 15
-ADKCONB_PRECOMP1        = 14
-ADKCONB_PRECOMP0        = 13
-ADKCONB_MFMPREC         = 12
-ADKCONB_UARTBRK         = 11
-ADKCONB_WORDSYNC        = 10
-ADKCONB_MSBSYNC         = 9
-ADKCONB_FAST            = 8
-ADKCONF_SETCLR          = (1<<15)
-ADKCONF_PRECOMP1        = (1<<14)
-ADKCONF_PRECOMP0        = (1<<13)
-ADKCONF_MFMPREC         = (1<<12)
-ADKCONF_UARTBRK         = (1<<11)
-ADKCONF_WORDSYNC        = (1<<10)
-ADKCONF_MSBSYNC         = (1<<9)
-ADKCONF_FAST            = (1<<8)
+ADKCONB_USE3PN        = 7
+ADKCONB_USE2P3        = 6
+ADKCONB_USE1P2        = 5
+ADKCONB_USE0P1        = 4
+ADKCONF_USE3PN        = (1<<7)
+ADKCONF_USE2P3        = (1<<6)
+ADKCONF_USE1P2        = (1<<5)
+ADKCONF_USE0P1        = (1<<4)
 *
-ADKCONB_USE3PN          = 7
-ADKCONB_USE2P3          = 6
-ADKCONB_USE1P2          = 5
-ADKCONB_USE0P1          = 4
-ADKCONF_USE3PN          = (1<<7)
-ADKCONF_USE2P3          = (1<<6)
-ADKCONF_USE1P2          = (1<<5)
-ADKCONF_USE0P1          = (1<<4)
+ADKCONB_USE3VN        = 3
+ADKCONB_USE2V3        = 2
+ADKCONB_USE1V2        = 1
+ADKCONB_USE0V1        = 0
+ADKCONF_USE3VN        = (1<<3)
+ADKCONF_USE2V3        = (1<<2)
+ADKCONF_USE1V2        = (1<<1)
+ADKCONF_USE0V1        = (1<<0)
 *
-ADKCONB_USE3VN          = 3
-ADKCONB_USE2V3          = 2
-ADKCONB_USE1V2          = 1
-ADKCONB_USE0V1          = 0
-ADKCONF_USE3VN          = (1<<3)
-ADKCONF_USE2V3          = (1<<2)
-ADKCONF_USE1V2          = (1<<1)
-ADKCONF_USE0V1          = (1<<0)
-*
-ADKCONF_PRE000NS        = $0000
-ADKCONF_PRE140NS        = $2000
-ADKCONF_PRE280NS        = $4000
-ADKCONF_PRE560NS        = $6000
+ADKCONF_PRE000NS      = $0000
+ADKCONF_PRE140NS      = $2000
+ADKCONF_PRE280NS      = $4000
+ADKCONF_PRE560NS      = $6000
 *
 ********************************************************************************
 
 *** AUDxLC (AUDxLCH + AUDxLCL) *************************************************
 *
-*   Relative address: $00A0 + $00A2 & $00B0 + $00B2 &
-*                     $00C0 + $00C2 & $00D0 + $00D2
+*   Relative address: $0A0 + $0A2 & $0B0 + $0B2 &
+*                     $0C0 + $0C2 & $0D0 + $0D2
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Audio channel x location
 *
-*   This pair of registers contains the 18 bit starting address (location) of 
-*   audio channel x (x=0,1,2,3) DMA data. This is not a pointer register and 
-*   therefore needs to be reloaded only if a different memory location is to be
-*   output. See the DMACON register for information on how to begin the DMA.
+AUD0LC                = $0A0
+AUD0LCH               = AUD0LC
+AUD0LCL               = $0A2
+AUD1LC                = $0B0
+AUD1LCH               = AUD1LC
+AUD1LCL               = $0B2
+AUD2LC                = $0C0
+AUD2LCH               = AUD2LC
+AUD2LCL               = $0C2
+AUD3LC                = $0D0
+AUD3LCH               = AUD3LC
+AUD3LCL               = $0D2
 *
-*   NOTE: Can be written to with a single MOVE.L instruction.
-*
-*   OCS: The low word's LSB is ignored and is assumed to be an even address.
-*        Only the 3 least significant bits in the high word are considered.
-*   ECS: As OCS, except the 5 least significant bits in the high word are
-*        considered.
-*   AGA: As ECS, except all bits in the high word are considered.
-*
-AUD0LC                  = $00A0
-AUD0LCH                 = AUD0LC
-AUD0LCL                 = $00A2
-AUD1LC                  = $00B0
-AUD1LCH                 = AUD1LC
-AUD1LCL                 = $00B2
-AUD2LC                  = $00C0
-AUD2LCH                 = AUD2LC
-AUD2LCL                 = $00C2
-AUD3LC                  = $00D0
-AUD3LCH                 = AUD3LC
-AUD3LCL                 = $00D2
-*
-CUSTOM_AUD0LC           = CUSTOM+AUD0LC 
-CUSTOM_AUD0LCH          = CUSTOM+AUD0LCH
-CUSTOM_AUD0LCL          = CUSTOM+AUD0LCL
-CUSTOM_AUD1LC           = CUSTOM+AUD1LC 
-CUSTOM_AUD1LCH          = CUSTOM+AUD1LCH
-CUSTOM_AUD1LCL          = CUSTOM+AUD1LCL
-CUSTOM_AUD2LC           = CUSTOM+AUD2LC 
-CUSTOM_AUD2LCH          = CUSTOM+AUD2LCH
-CUSTOM_AUD2LCL          = CUSTOM+AUD2LCL
-CUSTOM_AUD3LC           = CUSTOM+AUD3LC 
-CUSTOM_AUD3LCH          = CUSTOM+AUD3LCH
-CUSTOM_AUD3LCL          = CUSTOM+AUD3LCL
+CUSTOM_AUD0LC         = CUSTOM+AUD0LC
+CUSTOM_AUD0LCH        = CUSTOM+AUD0LCH
+CUSTOM_AUD0LCL        = CUSTOM+AUD0LCL
+CUSTOM_AUD1LC         = CUSTOM+AUD1LC
+CUSTOM_AUD1LCH        = CUSTOM+AUD1LCH
+CUSTOM_AUD1LCL        = CUSTOM+AUD1LCL
+CUSTOM_AUD2LC         = CUSTOM+AUD2LC
+CUSTOM_AUD2LCH        = CUSTOM+AUD2LCH
+CUSTOM_AUD2LCL        = CUSTOM+AUD2LCL
+CUSTOM_AUD3LC         = CUSTOM+AUD3LC
+CUSTOM_AUD3LCH        = CUSTOM+AUD3LCH
+CUSTOM_AUD3LCL        = CUSTOM+AUD3LCL
 *
 ********************************************************************************
 
 *** AUDxLEN ********************************************************************
 *
-*   Relative address: $00A4 & $00B4 & $00C4 & $00D4 
+*   Relative address: $0A4 & $0B4 & $0C4 & $0D4
 *   Read/write:       Write
 *   Chip:             Paula
 *   Function:         Audio channel x length
 *
-*   This register contains the length (number of words) of audio channel x DMA 
-*   data.
+AUD0LEN               = $0A4
+AUD1LEN               = $0B4
+AUD2LEN               = $0C4
+AUD3LEN               = $0D4
 *
-AUD0LEN                 = $00A4
-AUD1LEN                 = $00B4
-AUD2LEN                 = $00C4
-AUD3LEN                 = $00D4
-*
-CUSTOM_AUD0LEN          = CUSTOM+AUD0LEN
-CUSTOM_AUD1LEN          = CUSTOM+AUD1LEN
-CUSTOM_AUD2LEN          = CUSTOM+AUD2LEN
-CUSTOM_AUD3LEN          = CUSTOM+AUD3LEN
+CUSTOM_AUD0LEN        = CUSTOM+AUD0LEN
+CUSTOM_AUD1LEN        = CUSTOM+AUD1LEN
+CUSTOM_AUD2LEN        = CUSTOM+AUD2LEN
+CUSTOM_AUD3LEN        = CUSTOM+AUD3LEN
 *
 ********************************************************************************
 
 *** AUDxPER ********************************************************************
 *
-*   Relative address: $00A6 & $00B6 & $00C6 & $00D6 
+*   Relative address: $0A6 & $0B6 & $0C6 & $0D6
 *   Read/write:       Write
 *   Chip:             Paula
 *   Function:         Audio channel x period
 *
-*   This register contains the period (rate) of audio channel x DMA data 
-*   transfer. The minimum period is 124 color clocks. This means that the 
-*   smallest number that should be placed in this register is 123 (PAL)/124
-*   (NTSC) decimal. This corresponds to a maximum sample frequency of 28867 
-*   samples/second.
+AUD0PER               = $0A6
+AUD1PER               = $0B6
+AUD2PER               = $0C6
+AUD3PER               = $0D6
 *
-*   To avoid aliasing distortion, values should be restricted to the range of
-*   124-256, which corresponds to a sample rate of 14-28 kHz.
-*
-*   The formula that governs the audio system is: PERIOD = CONSTANT/SAMPLE_RATE
-*
-*   The constant in the above function is 3579545 for NTSC and 3546895 for PAL.
-*
-*   ECS: With programmable scan rates, the maximum value read from this register
-*        will differ. Generally, the faster the scan rate, the smaller the 
-*        maximum period becomes. Adjustments to the scan rate are reflected in 
-*        this maximum value.
-*
-AUD0PER                 = $00A6
-AUD1PER                 = $00B6
-AUD2PER                 = $00C6
-AUD3PER                 = $00D6
-*
-CUSTOM_AUD0PER          = CUSTOM+AUD0PER
-CUSTOM_AUD1PER          = CUSTOM+AUD1PER
-CUSTOM_AUD2PER          = CUSTOM+AUD2PER
-CUSTOM_AUD3PER          = CUSTOM+AUD3PER
+CUSTOM_AUD0PER        = CUSTOM+AUD0PER
+CUSTOM_AUD1PER        = CUSTOM+AUD1PER
+CUSTOM_AUD2PER        = CUSTOM+AUD2PER
+CUSTOM_AUD3PER        = CUSTOM+AUD3PER
 *
 ********************************************************************************
 
 *** AUDxVOL ********************************************************************
 *
-*   Relative address: $00A8 & $00B8 & $00C8 & $00D8
+*   Relative address: $0A8 & $0B8 & $0C8 & $0D8
 *   Read/write:       Write
 *   Chip:             Paula
 *   Function:         Audio channel x volume
 *
-*   This register contains the volume setting for audio channel x. Bits 6-0 
-*   specify 65 linear volume levels from 0 (silent) to 64 (maximum).
+AUD0VOL               = $0A8
+AUD1VOL               = $0B8
+AUD2VOL               = $0C8
+AUD3VOL               = $0D8
 *
-AUD0VOL                 = $00A8
-AUD1VOL                 = $00B8
-AUD2VOL                 = $00C8
-AUD3VOL                 = $00D8
-*
-CUSTOM_AUD0VOL          = CUSTOM+AUD0VOL
-CUSTOM_AUD1VOL          = CUSTOM+AUD1VOL
-CUSTOM_AUD2VOL          = CUSTOM+AUD2VOL
-CUSTOM_AUD3VOL          = CUSTOM+AUD3VOL
+CUSTOM_AUD0VOL        = CUSTOM+AUD0VOL
+CUSTOM_AUD1VOL        = CUSTOM+AUD1VOL
+CUSTOM_AUD2VOL        = CUSTOM+AUD2VOL
+CUSTOM_AUD3VOL        = CUSTOM+AUD3VOL
 *
 ********************************************************************************
 
 *** AUDxDAT ********************************************************************
 *
-*   Relative address: $00AA & $00BA & $00CA & $00DA
+*   Relative address: $0AA & $0BA & $0CA & $0DA
 *   Read/write:       Write
 *   Chip:             Paula
 *   Function:         Audio channel x data
 *
-*   This register is the audio channel x (x=0,1,2,3) DMA data buffer. It 
-*   contains 2 bytes of data that are each 2's complement and are output 
-*   sequentially (with digital-to-analog conversion) to the audio output pins. 
-*   (LSB = 3 MV) The DMA controller automatically transfers data to this
-*   register from RAM. The processor can also write directly to this register.
-*   When the DMA data is finished (words output=length) and the data in this 
-*   register has been used, an audio channel interrupt request is set.
+AUD0DAT               = $0AA
+AUD1DAT               = $0BA
+AUD2DAT               = $0CA
+AUD3DAT               = $0DA
 *
-AUD0DAT                 = $00AA
-AUD1DAT                 = $00BA
-AUD2DAT                 = $00CA
-AUD3DAT                 = $00DA
-*
-CUSTOM_AUD0DAT          = CUSTOM+AUD0DAT
-CUSTOM_AUD1DAT          = CUSTOM+AUD1DAT
-CUSTOM_AUD2DAT          = CUSTOM+AUD2DAT
-CUSTOM_AUD3DAT          = CUSTOM+AUD3DAT
+CUSTOM_AUD0DAT        = CUSTOM+AUD0DAT
+CUSTOM_AUD1DAT        = CUSTOM+AUD1DAT
+CUSTOM_AUD2DAT        = CUSTOM+AUD2DAT
+CUSTOM_AUD3DAT        = CUSTOM+AUD3DAT
 *
 ********************************************************************************
 
@@ -977,310 +725,720 @@ CUSTOM_AUD3DAT          = CUSTOM+AUD3DAT
 
 *** BPLxPT (BPLxPTH + BPLxPTL) *************************************************
 *
-*   Relative address: $00E0 + $00E2 & $00E4 + $00E6 &
-*                     $00E8 + $00EA & $00EC + $00EE &
-*                     $00F0 + $00F2 & $00F4 + $00F6 &
-*                     $00F8 + $00FA & $00FC + $00FE
+*   Relative address: $0E0 + $0E2 & $0E4 + $0E6 &
+*                     $0E8 + $0EA & $0EC + $0EE &
+*                     $0F0 + $0F2 & $0F4 + $0F6 &
+*                     $0F8 + $0FA & $0FC + $0FE
 *   Read/write:       Write
 *   Chip:             Agnus
 *   Function:         Bitplane x pointer
 *
-*   This pair of registers contains the 18-bit pointer to the address of 
-*   bitplane x (x=1,2,3,4,5,6) DMA data. This pointer must be reinitialized by 
-*   the processor or copper to point to the beginning of bitplane data every 
-*   vertical blank time.
+BPL1PT                = $0E0
+BPL1PTH               = BPL1PT
+BPL1PTL               = $0E2
+BPL2PT                = $0E4
+BPL2PTH               = BPL2PT
+BPL2PTL               = $0E6
+BPL3PT                = $0E8
+BPL3PTH               = BPL3PT
+BPL3PTL               = $0EA
+BPL4PT                = $0EC
+BPL4PTH               = BPL4PT
+BPL4PTL               = $0EE
+BPL5PT                = $0F0
+BPL5PTH               = BPL5PT
+BPL5PTL               = $0F2
+BPL6PT                = $0F4
+BPL6PTH               = BPL6PT
+BPL6PTL               = $0F6
+BPL7PT                = $0F8
+BPL7PTH               = BPL7PT
+BPL7PTL               = $0FA
+BPL8PT                = $0FC
+BPL8PTH               = BPL8PT
+BPL8PTL               = $0FE
 *
-*   NOTE: Can be written to with a single MOVE.L instruction.
-*
-*   OCS: The low word's LSB is ignored and is assumed to be an even address.
-*        Only the 3 least significant bits in the high word are considered.
-*   ECS: As OCS, except the 5 least significant bits in the high word are
-*        considered.
-*   AGA: As ECS, except all bits in the high word are considered. AGA also adds
-*        bitplanes 7 and 8.
-*
-BPL1PT                  = $00E0
-BPL1PTH                 = BPL1PT
-BPL1PTL                 = $00E2
-BPL2PT                  = $00E4
-BPL2PTH                 = BPL2PT
-BPL2PTL                 = $00E6
-BPL3PT                  = $00E8
-BPL3PTH                 = BPL3PT
-BPL3PTL                 = $00EA
-BPL4PT                  = $00EC
-BPL4PTH                 = BPL4PT
-BPL4PTL                 = $00EE
-BPL5PT                  = $00F0
-BPL5PTH                 = BPL5PT
-BPL5PTL                 = $00F2
-BPL6PT                  = $00F4
-BPL6PTH                 = BPL6PT
-BPL6PTL                 = $00F6
-BPL7PT                  = $00F8
-BPL7PTH                 = BPL7PT
-BPL7PTL                 = $00FA
-BPL8PT                  = $00FC
-BPL8PTH                 = BPL8PT
-BPL8PTL                 = $00FE
-*
-CUSTOM_BPL1PT           = CUSTOM+BPL1PT 
-CUSTOM_BPL1PTH          = CUSTOM+BPL1PTH 
-CUSTOM_BPL1PTL          = CUSTOM+BPL1PTL
-CUSTOM_BPL2PT           = CUSTOM+BPL2PT 
-CUSTOM_BPL2PTH          = CUSTOM+BPL2PTH 
-CUSTOM_BPL2PTL          = CUSTOM+BPL2PTL
-CUSTOM_BPL3PT           = CUSTOM+BPL3PT 
-CUSTOM_BPL3PTH          = CUSTOM+BPL3PTH 
-CUSTOM_BPL3PTL          = CUSTOM+BPL3PTL
-CUSTOM_BPL4PT           = CUSTOM+BPL4PT 
-CUSTOM_BPL4PTH          = CUSTOM+BPL4PTH 
-CUSTOM_BPL4PTL          = CUSTOM+BPL4PTL
-CUSTOM_BPL5PT           = CUSTOM+BPL5PT 
-CUSTOM_BPL5PTH          = CUSTOM+BPL5PTH 
-CUSTOM_BPL5PTL          = CUSTOM+BPL5PTL
-CUSTOM_BPL6PT           = CUSTOM+BPL6PT 
-CUSTOM_BPL6PTH          = CUSTOM+BPL6PTH 
-CUSTOM_BPL6PTL          = CUSTOM+BPL6PTL
-CUSTOM_BPL7PT           = CUSTOM+BPL7PT 
-CUSTOM_BPL7PTH          = CUSTOM+BPL7PTH 
-CUSTOM_BPL7PTL          = CUSTOM+BPL7PTL
-CUSTOM_BPL8PT           = CUSTOM+BPL8PT 
-CUSTOM_BPL8PTH          = CUSTOM+BPL8PTH 
-CUSTOM_BPL8PTL          = CUSTOM+BPL8PTL
+CUSTOM_BPL1PT         = CUSTOM+BPL1PT
+CUSTOM_BPL1PTH        = CUSTOM+BPL1PTH
+CUSTOM_BPL1PTL        = CUSTOM+BPL1PTL
+CUSTOM_BPL2PT         = CUSTOM+BPL2PT
+CUSTOM_BPL2PTH        = CUSTOM+BPL2PTH
+CUSTOM_BPL2PTL        = CUSTOM+BPL2PTL
+CUSTOM_BPL3PT         = CUSTOM+BPL3PT
+CUSTOM_BPL3PTH        = CUSTOM+BPL3PTH
+CUSTOM_BPL3PTL        = CUSTOM+BPL3PTL
+CUSTOM_BPL4PT         = CUSTOM+BPL4PT
+CUSTOM_BPL4PTH        = CUSTOM+BPL4PTH
+CUSTOM_BPL4PTL        = CUSTOM+BPL4PTL
+CUSTOM_BPL5PT         = CUSTOM+BPL5PT
+CUSTOM_BPL5PTH        = CUSTOM+BPL5PTH
+CUSTOM_BPL5PTL        = CUSTOM+BPL5PTL
+CUSTOM_BPL6PT         = CUSTOM+BPL6PT
+CUSTOM_BPL6PTH        = CUSTOM+BPL6PTH
+CUSTOM_BPL6PTL        = CUSTOM+BPL6PTL
+CUSTOM_BPL7PT         = CUSTOM+BPL7PT
+CUSTOM_BPL7PTH        = CUSTOM+BPL7PTH
+CUSTOM_BPL7PTL        = CUSTOM+BPL7PTL
+CUSTOM_BPL8PT         = CUSTOM+BPL8PT
+CUSTOM_BPL8PTH        = CUSTOM+BPL8PTH
+CUSTOM_BPL8PTL        = CUSTOM+BPL8PTL
 *
 ********************************************************************************
 
-;BPLCON0               equ bplcon0        
-;BPLCON1               equ bplcon1        
-;BPLCON2               equ bplcon2        
-;BPLCON3               equ bplcon3
-;BPLCON4               equ bplcon4
-;BPL1MOD               equ bpl1mod        
-;BPL2MOD               equ bpl2mod       
-;
-;BPL1DAT               equ bpldat
-;BPL2DAT               equ bpldat+$02
-;BPL3DAT               equ bpldat+$04
-;BPL4DAT               equ bpldat+$06
-;BPL5DAT               equ bpldat+$08
-;BPL6DAT               equ bpldat+$0a
-;BPL7DAT               equ bpldat+$0c
-;BPL8DAT               equ bpldat+$0e
+*** BPLCONx ********************************************************************
+*
+*   Relative address: $100 & $102 & $104 & $106 & $10C
+*   Read/write:       Write
+*   Chip:             Agnus & Denise
+*   Function:         Bitplane control registers
+*
+BPLCON0               = $100
+BPLCON1               = $102
+BPLCON2               = $104
+BPLCON3               = $106
+BPLCON4               = $10C
+*
+CUSTOM_BPLCON0        = CUSTOM+BPLCON0
+CUSTOM_BPLCON1        = CUSTOM+BPLCON1
+CUSTOM_BPLCON2        = CUSTOM+BPLCON2
+CUSTOM_BPLCON3        = CUSTOM+BPLCON3
+CUSTOM_BPLCON4        = CUSTOM+BPLCON4
+*
+BPLCON0B_HIRES        = 15
+BPLCON0B_BPU2         = 14
+BPLCON0B_BPU1         = 13
+BPLCON0B_BPU0         = 12
+BPLCON0B_HAM          = 11
+BPLCON0B_HOMOD        = 11
+BPLCON0B_DPF          = 10
+BPLCON0B_DBLPF        = 10
+BPLCON0B_COLOR        = 9
+BPLCON0B_GAUD         = 8
+BPLCON0B_UHRES        = 7
+BPLCON0B_SHRES        = 6
+BPLCON0B_BYPASS       = 5
+BPLCON0B_BPU3         = 4
+BPLCON0B_LPEN         = 3
+BPLCON0B_LACE         = 2
+BPLCON0B_ERSY         = 1
+BPLCON0B_ECSENA       = 0
+BPLCON0F_HIRES        = (1<<15)
+BPLCON0F_BPU2         = (1<<14)
+BPLCON0F_BPU1         = (1<<13)
+BPLCON0F_BPU0         = (1<<12)
+BPLCON0F_HAM          = (1<<11)
+BPLCON0F_HOMOD        = (1<<11)
+BPLCON0F_DPF          = (1<<10)
+BPLCON0F_DBLPF        = (1<<10)
+BPLCON0F_COLOR        = (1<<9)
+BPLCON0F_GAUD         = (1<<8)
+BPLCON0F_UHRES        = (1<<7)
+BPLCON0F_SHRES        = (1<<6)
+BPLCON0F_BYPASS       = (1<<5)
+BPLCON0F_BPU3         = (1<<4)
+BPLCON0F_LPEN         = (1<<3)
+BPLCON0F_LACE         = (1<<2)
+BPLCON0F_ERSY         = (1<<1)
+BPLCON0F_ECSENA       = (1<<0)
+*
+BPLCON1B_PF2H7        = 15
+BPLCON1B_PF2H6        = 14
+BPLCON1B_PF2H1        = 13
+BPLCON1B_PF2H0        = 12
+BPLCON1B_PF1H7        = 11
+BPLCON1B_PF1H6        = 10
+BPLCON1B_PF1H1        = 9
+BPLCON1B_PF1H0        = 8
+BPLCON1B_PF2H5        = 7
+BPLCON1B_PF2H4        = 6
+BPLCON1B_PF2H3        = 5
+BPLCON1B_PF2H2        = 4
+BPLCON1B_PF1H5        = 3
+BPLCON1B_PF1H4        = 2
+BPLCON1B_PF1H3        = 1
+BPLCON1B_PF1H2        = 0
+BPLCON1F_PF2H7        = (1<<15)
+BPLCON1F_PF2H6        = (1<<14)
+BPLCON1F_PF2H1        = (1<<13)
+BPLCON1F_PF2H0        = (1<<12)
+BPLCON1F_PF1H7        = (1<<11)
+BPLCON1F_PF1H6        = (1<<10)
+BPLCON1F_PF1H1        = (1<<9)
+BPLCON1F_PF1H0        = (1<<8)
+BPLCON1F_PF2H5        = (1<<7)
+BPLCON1F_PF2H4        = (1<<6)
+BPLCON1F_PF2H3        = (1<<5)
+BPLCON1F_PF2H2        = (1<<4)
+BPLCON1F_PF1H5        = (1<<3)
+BPLCON1F_PF1H4        = (1<<2)
+BPLCON1F_PF1H3        = (1<<1)
+BPLCON1F_PF1H2        = (1<<0)
+*
+BPLCON2B_ZDBPSEL2     = 14
+BPLCON2B_ZDBPSEL1     = 13
+BPLCON2B_ZDBPSEL0     = 12
+BPLCON2B_ZDBPEN       = 11
+BPLCON2B_ZDCTEN       = 10
+BPLCON2B_KILLEHB      = 9
+BPLCON2B_RDRAM        = 8
+BPLCON2B_SOGEN        = 7
+BPLCON2B_PF2PRI       = 6
+BPLCON2B_PF2P2        = 5
+BPLCON2B_PF2P1        = 4
+BPLCON2B_PF2P0        = 3
+BPLCON2B_PF1P2        = 2
+BPLCON2B_PF1P1        = 1
+BPLCON2B_PF1P0        = 0
+BPLCON2F_ZDBPSEL2     = (1<<14)
+BPLCON2F_ZDBPSEL1     = (1<<13)
+BPLCON2F_ZDBPSEL0     = (1<<12)
+BPLCON2F_ZDBPEN       = (1<<11)
+BPLCON2F_ZDCTEN       = (1<<10)
+BPLCON2F_KILLEHB      = (1<<9)
+BPLCON2F_RDRAM        = (1<<8)
+BPLCON2F_SOGEN        = (1<<7)
+BPLCON2F_PF2PRI       = (1<<6)
+BPLCON2F_PF2P2        = (1<<5)
+BPLCON2F_PF2P1        = (1<<4)
+BPLCON2F_PF2P0        = (1<<3)
+BPLCON2F_PF1P2        = (1<<2)
+BPLCON2F_PF1P1        = (1<<1)
+BPLCON2F_PF1P0        = (1<<0)
+*
+BPLCON3B_BANK2        = 15
+BPLCON3B_BANK1        = 14
+BPLCON3B_BANK0        = 13
+BPLCON3B_PF2OF2       = 12
+BPLCON3B_PF2OF1       = 11
+BPLCON3B_PF2OF0       = 10
+BPLCON3B_LOCT         = 9
+BPLCON3B_SPRES1       = 7
+BPLCON3B_SPRES0       = 6
+BPLCON3B_BRDRBLNK     = 5
+BPLCON3B_BRDNTRAN     = 4
+BPLCON3B_ZDCLKEN      = 2
+BPLCON3B_BRDSPRT      = 1
+BPLCON3B_EXTBLKEN     = 0
+BPLCON3F_BANK2        = (1<<15)
+BPLCON3F_BANK1        = (1<<14)
+BPLCON3F_BANK0        = (1<<13)
+BPLCON3F_PF2OF2       = (1<<12)
+BPLCON3F_PF2OF1       = (1<<11)
+BPLCON3F_PF2OF0       = (1<<10)
+BPLCON3F_LOCT         = (1<<9)
+BPLCON3F_SPRES1       = (1<<7)
+BPLCON3F_SPRES0       = (1<<6)
+BPLCON3F_BRDRBLNK     = (1<<5)
+BPLCON3F_BRDNTRAN     = (1<<4)
+BPLCON3F_ZDCLKEN      = (1<<2)
+BPLCON3F_BRDSPRT      = (1<<1)
+BPLCON3F_EXTBLKEN     = (1<<0)
+*
+BPLCON4B_BPLAM7       = 15
+BPLCON4B_BPLAM6       = 14
+BPLCON4B_BPLAM5       = 13
+BPLCON4B_BPLAM4       = 12
+BPLCON4B_BPLAM3       = 11
+BPLCON4B_BPLAM2       = 10
+BPLCON4B_BPLAM1       = 9
+BPLCON4B_BPLAM0       = 8
+BPLCON4B_ESPRM3       = 7
+BPLCON4B_ESPRM2       = 6
+BPLCON4B_ESPRM1       = 5
+BPLCON4B_ESPRM0       = 4
+BPLCON4B_OSPRM3       = 3
+BPLCON4B_OSPRM2       = 2
+BPLCON4B_OSPRM1       = 1
+BPLCON4B_OSPRM0       = 0
+BPLCON4F_BPLAM7       = (1<<15)
+BPLCON4F_BPLAM6       = (1<<14)
+BPLCON4F_BPLAM5       = (1<<13)
+BPLCON4F_BPLAM4       = (1<<12)
+BPLCON4F_BPLAM3       = (1<<11)
+BPLCON4F_BPLAM2       = (1<<10)
+BPLCON4F_BPLAM1       = (1<<9)
+BPLCON4F_BPLAM0       = (1<<8)
+BPLCON4F_ESPRM3       = (1<<7)
+BPLCON4F_ESPRM2       = (1<<6)
+BPLCON4F_ESPRM1       = (1<<5)
+BPLCON4F_ESPRM0       = (1<<4)
+BPLCON4F_OSPRM3       = (1<<3)
+BPLCON4F_OSPRM2       = (1<<2)
+BPLCON4F_OSPRM1       = (1<<1)
+BPLCON4F_OSPRM0       = (1<<0)
+*
+********************************************************************************
+
+*** BPLxMOD ********************************************************************
+*
+*   Relative address: $108 & $10A
+*   Read/write:       Write
+*   Chip:             Agnus
+*   Function:         Bitplane modulo (odd/even)
+*
+BPL1MOD               = $108
+BPL2MOD               = $10A
+*
+CUSTOM_BPL1MOD        = CUSTOM+BPL1MOD
+CUSTOM_BPL2MOD        = CUSTOM+BPL2MOD
+*
+********************************************************************************
+
+*** BPLxDAT ********************************************************************
+*
+*   Relative address: $110 & $112 & $114 & $116 & 
+*                     $118 & $11A & $11C & $11E
+*   Read/write:       Write
+*   Chip:             Denise
+*   Function:         Bitplane x data (par-to-ser)
+*
+BPL1DAT               = $110
+BPL2DAT               = $112
+BPL3DAT               = $114
+BPL4DAT               = $116
+BPL5DAT               = $118
+BPL6DAT               = $11A
+BPL7DAT               = $11C
+BPL8DAT               = $11E
+*
+CUSTOM_BPL1DAT        = CUSTOM+BPL1DAT
+CUSTOM_BPL2DAT        = CUSTOM+BPL2DAT
+CUSTOM_BPL3DAT        = CUSTOM+BPL3DAT
+CUSTOM_BPL4DAT        = CUSTOM+BPL4DAT
+CUSTOM_BPL5DAT        = CUSTOM+BPL5DAT
+CUSTOM_BPL6DAT        = CUSTOM+BPL6DAT
+CUSTOM_BPL7DAT        = CUSTOM+BPL7DAT
+CUSTOM_BPL8DAT        = CUSTOM+BPL8DAT
+*
+********************************************************************************
+
+*** SPRITE CONTROL REGISTERS ***************************************************
+
+*** SPRxPT (SPRxPTH + SPRxPTL) *************************************************
+*
+*   Relative address: $120 + $122 & $124 + $126 &
+*                     $128 + $12A & $12C + $12E &
+*                     $130 + $132 & $134 + $136 &
+*                     $138 + $13A & $13C + $13E &                               
+*       
+*   Read/write:       Write
+*   Chip:             Agnus
+*   Function:         Sprite x pointer
+*
+SPR0PT                = $120
+SPR0PTH               = SPR0PT
+SPR0PTL               = $122
+SPR1PT                = $124
+SPR1PTH               = SPR1PT
+SPR1PTL               = $126
+SPR2PT                = $128
+SPR2PTH               = SPR2PT
+SPR2PTL               = $12A
+SPR3PT                = $12C
+SPR3PTH               = SPR3PT
+SPR3PTL               = $12E
+SPR4PT                = $130
+SPR4PTH               = SPR4PT
+SPR4PTL               = $132
+SPR5PT                = $134
+SPR5PTH               = SPR5PT
+SPR5PTL               = $136
+SPR6PT                = $138
+SPR6PTH               = SPR6PT
+SPR6PTL               = $13A
+SPR7PT                = $13C
+SPR7PTH               = SPR7PT
+SPR7PTL               = $13E
+*
+CUSTOM_SPR0PT         = CUSTOM+SPR0PT
+CUSTOM_SPR0PTH        = CUSTOM+SPR0PTH
+CUSTOM_SPR0PTL        = CUSTOM+SPR0PTL
+CUSTOM_SPR1PT         = CUSTOM+SPR1PT
+CUSTOM_SPR1PTH        = CUSTOM+SPR1PTH
+CUSTOM_SPR1PTL        = CUSTOM+SPR1PTL
+CUSTOM_SPR2PT         = CUSTOM+SPR2PT
+CUSTOM_SPR2PTH        = CUSTOM+SPR2PTH
+CUSTOM_SPR2PTL        = CUSTOM+SPR2PTL
+CUSTOM_SPR3PT         = CUSTOM+SPR3PT
+CUSTOM_SPR3PTH        = CUSTOM+SPR3PTH
+CUSTOM_SPR3PTL        = CUSTOM+SPR3PTL
+CUSTOM_SPR4PT         = CUSTOM+SPR4PT
+CUSTOM_SPR4PTH        = CUSTOM+SPR4PTH
+CUSTOM_SPR4PTL        = CUSTOM+SPR4PTL
+CUSTOM_SPR5PT         = CUSTOM+SPR5PT
+CUSTOM_SPR5PTH        = CUSTOM+SPR5PTH
+CUSTOM_SPR5PTL        = CUSTOM+SPR5PTL
+CUSTOM_SPR6PT         = CUSTOM+SPR6PT
+CUSTOM_SPR6PTH        = CUSTOM+SPR6PTH
+CUSTOM_SPR6PTL        = CUSTOM+SPR6PTL
+CUSTOM_SPR7PT         = CUSTOM+SPR7PT
+CUSTOM_SPR7PTH        = CUSTOM+SPR7PTH
+CUSTOM_SPR7PTL        = CUSTOM+SPR7PTL
+*
+********************************************************************************
+
+*** SPRxPOS ********************************************************************
+*
+*   Relative address: $140 & $148 & $150 & $158 &                               
+*       
+*                     $160 & $168 & $170 & $178
+*   Read/write:       Write
+*   Chip:             Agnus & Denise
+*   Function:         Sprite x start position
+*
+SPR0POS               = $140
+SPR1POS               = $148
+SPR2POS               = $150
+SPR3POS               = $158
+SPR4POS               = $160
+SPR5POS               = $168
+SPR6POS               = $170
+SPR7POS               = $178
+*
+CUSTOM_SPR0POS        = CUSTOM+SPR0POS
+CUSTOM_SPR1POS        = CUSTOM+SPR1POS
+CUSTOM_SPR2POS        = CUSTOM+SPR2POS
+CUSTOM_SPR3POS        = CUSTOM+SPR3POS
+CUSTOM_SPR4POS        = CUSTOM+SPR4POS
+CUSTOM_SPR5POS        = CUSTOM+SPR5POS
+CUSTOM_SPR6POS        = CUSTOM+SPR6POS
+CUSTOM_SPR7POS        = CUSTOM+SPR7POS
+*
+SPRxPOSB_SV7          = 15
+SPRxPOSB_SV6          = 14
+SPRxPOSB_SV5          = 13
+SPRxPOSB_SV4          = 12
+SPRxPOSB_SV3          = 11
+SPRxPOSB_SV2          = 10
+SPRxPOSB_SV1          = 9
+SPRxPOSB_SV0          = 8
+SPRxPOSB_SH8          = 7
+SPRxPOSB_SH7          = 6
+SPRxPOSB_SH6          = 5
+SPRxPOSB_SH5          = 4
+SPRxPOSB_SH4          = 3
+SPRxPOSB_SH3          = 2
+SPRxPOSB_SH2          = 1
+SPRxPOSB_SH1          = 0
+SPRxPOSF_SV7          = (1<<15)
+SPRxPOSF_SV6          = (1<<14)
+SPRxPOSF_SV5          = (1<<13)
+SPRxPOSF_SV4          = (1<<12)
+SPRxPOSF_SV3          = (1<<11)
+SPRxPOSF_SV2          = (1<<10)
+SPRxPOSF_SV1          = (1<<9)
+SPRxPOSF_SV0          = (1<<8)
+SPRxPOSF_SH8          = (1<<7)
+SPRxPOSF_SH7          = (1<<6)
+SPRxPOSF_SH6          = (1<<5)
+SPRxPOSF_SH5          = (1<<4)
+SPRxPOSF_SH4          = (1<<3)
+SPRxPOSF_SH3          = (1<<2)
+SPRxPOSF_SH2          = (1<<1)
+SPRxPOSF_SH1          = (1<<0)
+*
+********************************************************************************
+
+*** SPRxCTL ********************************************************************
+*
+*   Relative address: $142 & $14A & $152 & $15A &                               
+*       
+*                     $162 & $16A & $172 & $17A
+*   Read/write:       Write
+*   Chip:             Agnus & Denise
+*   Function:         Sprite x control
+*
+SPR0CTL               = $142
+SPR1CTL               = $14A
+SPR2CTL               = $152
+SPR3CTL               = $15A
+SPR4CTL               = $162
+SPR5CTL               = $16A
+SPR6CTL               = $172
+SPR7CTL               = $17A
+*
+CUSTOM_SPR0CTL        = CUSTOM+SPR0CTL
+CUSTOM_SPR1CTL        = CUSTOM+SPR1CTL
+CUSTOM_SPR2CTL        = CUSTOM+SPR2CTL
+CUSTOM_SPR3CTL        = CUSTOM+SPR3CTL
+CUSTOM_SPR4CTL        = CUSTOM+SPR4CTL
+CUSTOM_SPR5CTL        = CUSTOM+SPR5CTL
+CUSTOM_SPR6CTL        = CUSTOM+SPR6CTL
+CUSTOM_SPR7CTL        = CUSTOM+SPR7CTL
+*
+SPRxCTLB_EV7          = 15
+SPRxCTLB_EV6          = 14
+SPRxCTLB_EV5          = 13
+SPRxCTLB_EV4          = 12
+SPRxCTLB_EV3          = 11
+SPRxCTLB_EV2          = 10
+SPRxCTLB_EV1          = 9
+SPRxCTLB_EV0          = 8
+SPRxCTLB_ATT          = 7
+SPRxCTLB_SV9          = 6
+SPRxCTLB_EV9          = 5
+SPRxCTLB_SHSH1        = 4
+SPRxCTLB_SHSH0        = 3
+SPRxCTLB_SV8          = 2
+SPRxCTLB_EV8          = 1
+SPRxCTLB_SH0          = 0
+SPRxCTLF_EV7          = (1<<15)
+SPRxCTLF_EV6          = (1<<14)
+SPRxCTLF_EV5          = (1<<13)
+SPRxCTLF_EV4          = (1<<12)
+SPRxCTLF_EV3          = (1<<11)
+SPRxCTLF_EV2          = (1<<10)
+SPRxCTLF_EV1          = (1<<9)
+SPRxCTLF_EV0          = (1<<8)
+SPRxCTLF_ATT          = (1<<7)
+SPRxCTLF_SV9          = (1<<6)
+SPRxCTLF_EV9          = (1<<5)
+SPRxCTLF_SHSH1        = (1<<4)
+SPRxCTLF_SHSH0        = (1<<3)
+SPRxCTLF_SV8          = (1<<2)
+SPRxCTLF_EV8          = (1<<1)
+SPRxCTLF_SH0          = (1<<0)
+*
+********************************************************************************
+
+*** SPRxDATA + SPRxDATB ********************************************************
+*
+*   Relative address: $144 + $146 & $14C + $14E &
+*                     $154 + $156 & $15C + $15E &
+*                     $164 + $166 & $16C + $16E &
+*                     $174 + $176 & $17C + $17E
+*   Read/write:       Write
+*   Chip:             Denise
+*   Function:         Sprite x data
+*
+SPR0DATA              = $144
+SPR0DATB              = $146
+SPR1DATA              = $14C
+SPR1DATB              = $14E
+SPR2DATA              = $154
+SPR2DATB              = $156
+SPR3DATA              = $15C
+SPR3DATB              = $15E
+SPR4DATA              = $164
+SPR4DATB              = $166
+SPR5DATA              = $16C
+SPR5DATB              = $16E
+SPR6DATA              = $174
+SPR6DATB              = $176
+SPR7DATA              = $17C
+SPR7DATB              = $17E
+*
+CUSTOM_SPR0DATA       = CUSTOM+SPR0DATA
+CUSTOM_SPR0DATB       = CUSTOM+SPR0DATB
+CUSTOM_SPR1DATA       = CUSTOM+SPR1DATA
+CUSTOM_SPR1DATB       = CUSTOM+SPR1DATB
+CUSTOM_SPR2DATA       = CUSTOM+SPR2DATA
+CUSTOM_SPR2DATB       = CUSTOM+SPR2DATB
+CUSTOM_SPR3DATA       = CUSTOM+SPR3DATA
+CUSTOM_SPR3DATB       = CUSTOM+SPR3DATB
+CUSTOM_SPR4DATA       = CUSTOM+SPR4DATA
+CUSTOM_SPR4DATB       = CUSTOM+SPR4DATB
+CUSTOM_SPR5DATA       = CUSTOM+SPR5DATA
+CUSTOM_SPR5DATB       = CUSTOM+SPR5DATB
+CUSTOM_SPR6DATA       = CUSTOM+SPR6DATA
+CUSTOM_SPR6DATB       = CUSTOM+SPR6DATB
+CUSTOM_SPR7DATA       = CUSTOM+SPR7DATA
+CUSTOM_SPR7DATB       = CUSTOM+SPR7DATB
+*
+********************************************************************************
+
+*** COLOR REGISTERS ************************************************************
+
+*** COLORxx ********************************************************************
+*
+*   Relative address: $180 & $182 & $184 & $186 &
+*                     $188 & $18A & $18C & $18E &
+*                     $190 & $192 & $194 & $196 &
+*                     $198 & $19A & $19C & $19E &
+*                     $1A0 & $1A2 & $1A4 & $1A6 &
+*                     $1A8 & $1AA & $1AC & $1AE &
+*                     $1B0 & $1B2 & $1B4 & $1B6 &
+*                     $1B8 & $1BA & $1BC & $1BE
+*   Read/write:       Write
+*   Chip:             Denise
+*   Function:         Color table
+*
+COLOR00               = $180
+COLOR01               = $182
+COLOR02               = $184
+COLOR03               = $186
+COLOR04               = $188
+COLOR05               = $18A
+COLOR06               = $18C
+COLOR07               = $18E
+COLOR08               = $190
+COLOR09               = $192
+COLOR10               = $194
+COLOR11               = $196
+COLOR12               = $198
+COLOR13               = $19A
+COLOR14               = $19C
+COLOR15               = $19E
+COLOR16               = $1A0
+COLOR17               = $1A2
+COLOR18               = $1A4
+COLOR19               = $1A6
+COLOR20               = $1A8
+COLOR21               = $1AA
+COLOR22               = $1AC
+COLOR23               = $1AE
+COLOR24               = $1B0
+COLOR25               = $1B2
+COLOR26               = $1B4
+COLOR27               = $1B6
+COLOR28               = $1B8
+COLOR29               = $1BA
+COLOR30               = $1BC
+COLOR31               = $1BE
+*
+CUSTOM_COLOR00        = CUSTOM+COLOR00
+CUSTOM_COLOR01        = CUSTOM+COLOR01
+CUSTOM_COLOR02        = CUSTOM+COLOR02
+CUSTOM_COLOR03        = CUSTOM+COLOR03
+CUSTOM_COLOR04        = CUSTOM+COLOR04
+CUSTOM_COLOR05        = CUSTOM+COLOR05
+CUSTOM_COLOR06        = CUSTOM+COLOR06
+CUSTOM_COLOR07        = CUSTOM+COLOR07
+CUSTOM_COLOR08        = CUSTOM+COLOR08
+CUSTOM_COLOR09        = CUSTOM+COLOR09
+CUSTOM_COLOR10        = CUSTOM+COLOR10
+CUSTOM_COLOR11        = CUSTOM+COLOR11
+CUSTOM_COLOR12        = CUSTOM+COLOR12
+CUSTOM_COLOR13        = CUSTOM+COLOR13
+CUSTOM_COLOR14        = CUSTOM+COLOR14
+CUSTOM_COLOR15        = CUSTOM+COLOR15
+CUSTOM_COLOR16        = CUSTOM+COLOR16
+CUSTOM_COLOR17        = CUSTOM+COLOR17
+CUSTOM_COLOR18        = CUSTOM+COLOR18
+CUSTOM_COLOR19        = CUSTOM+COLOR19
+CUSTOM_COLOR20        = CUSTOM+COLOR20
+CUSTOM_COLOR21        = CUSTOM+COLOR21
+CUSTOM_COLOR22        = CUSTOM+COLOR22
+CUSTOM_COLOR23        = CUSTOM+COLOR23
+CUSTOM_COLOR24        = CUSTOM+COLOR24
+CUSTOM_COLOR25        = CUSTOM+COLOR25
+CUSTOM_COLOR26        = CUSTOM+COLOR26
+CUSTOM_COLOR27        = CUSTOM+COLOR27
+CUSTOM_COLOR28        = CUSTOM+COLOR28
+CUSTOM_COLOR29        = CUSTOM+COLOR29
+CUSTOM_COLOR30        = CUSTOM+COLOR30
+CUSTOM_COLOR31        = CUSTOM+COLOR31
+*
+********************************************************************************
+
+*** MISC REGISTERS *************************************************************
+
+*** TODO ***********************************************************************
+*
+*   $002 = DMACONR
+*   $004 = VPOSR
+*   $006 = VHPOSR
+*   $02A = VPOSW
+*   $02C = VHPOSW
+*   $00A = JOY0DAT
+*   $00C = JOY1DAT
+*   $00E = CLXDAT
+*   $012 = POT0DAT
+*   $014 = POT1DAT
+*   $016 = POTINP
+*   $018 = SERDATR
+*   $01C = INTENAR
+*   $01E = INTREQR
+*   $028 = REFPTR
+*   $030 = SERDAT
+*   $032 = SERPER
+*   $034 = POTGO
+*   $036 = JOYTEST
+*   $038 = STREQU
+*   $03A = STRVBL
+*   $03C = STRHOR
+*   $03E = STRLONG
+*   $078 = SPRHDAT 
+*   $07A = BPLHDAT 
+*   $07C = DENISEID
+*   $08E = DIWSTRT
+*   $090 = DIWSTOP
+*   $092 = DDFSTRT
+*   $094 = DDFSTOP
+*   $096 = DMACON
+*   $098 = CLXCON
+*   $10E = CLXCON2
+*   $09A = INTENA
+*   $09C = INTREQ
+*   $1C0 = HTOTAL  
+*   $1C2 = HSSTOP  
+*   $1C4 = HBSTRT  
+*   $1C6 = HBSTOP  
+*   $1C8 = VTOTAL  
+*   $1CA = VSSTOP  
+*   $1CC = VBSTRT  
+*   $1CE = VBSTOP  
+*   $1D0 = SPRHSTRT
+*   $1D2 = SPRHSTOP
+*   $1D4 = BPLHSTRT
+*   $1D6 = BPLHSTOP
+*   $1D8 = HHPOSW  
+*   $1DA = HHPOSR  
+*   $1DC = BEAMCON0
+*   $1DE = HSSTRT  
+*   $1E0 = VSSTRT  
+*   $1E2 = HCENTER 
+*   $1E4 = DIWHIGH 
+*   $1E6 = BPLHMOD 
+*   $1E8 = SPRHPTH 
+*   $1EA = SPRHPTL 
+*   $1EC = BPLHPTH 
+*   $1EE = BPLHPTL 
+*   $1FC = FMODE   
+*   $1FE = NOOP
+*
+********************************************************************************
 
 *** DUMMY REGISTERS ************************************************************
 
 *** BLTDDAT ********************************************************************
 *
-*   Relative address: $0000
+*   Relative address: $000
 *   Read/write:       -
 *   Chip:             Agnus
 *   Function:         Blitter destination data register
 *
-*   This register holds the data resulting from each word of blitter operation 
-*   until it is sent to a RAM destination. This is a dummy address and cannot be
-*   read by the micro. The transfer is automatic during blitter operation.
+BLTDDAT               = $000
 *
-BLTDDAT                 = $0000
-*
-CUSTOM_BLTDDAT          = CUSTOM+BLTDDAT
+CUSTOM_BLTDDAT        = CUSTOM+BLTDDAT
 *
 ********************************************************************************
 
 *** DSKDATR ********************************************************************
 *
-*   Relative address: $0008
+*   Relative address: $008
 *   Read/write:       -
 *   Chip:             Paula
 *   Function:         Disk DMA data read
 *
-*   See DSKDAT in the disk control registers section.
+DSKDATR               = $008
 *
-DSKDATR                 = $0008
-*
-CUSTOM_DSKDATR          = CUSTOM+DSKDATR
+CUSTOM_DSKDATR        = CUSTOM+DSKDATR
 *
 ********************************************************************************
 
 *** COPINS *********************************************************************
 *
-*   Relative address: $008C
+*   Relative address: $08C
 *   Read/write:       -
 *   Chip:             Agnus
 *   Function:         Copper instruction fetch identify
 *
-*   This is a dummy address used by the copper to identify its instructions
+COPINS                = $08C
 *
-COPINS                  = $008C
-*
-CUSTOM_COPINS           = CUSTOM+COPINS
+CUSTOM_COPINS         = CUSTOM+COPINS
 *
 ********************************************************************************
 
-
-
-; Checklist
-; $0002
-; $0004
-; $0006
-; $000A
-; $000C
-; $000E
-; $0012
-; $0014
-; $0016
-; $0018
-; $001C
-; $001E
-; $0028
-; $002A
-; $002C
-; $0030
-; $0032
-; $0034
-; $0036
-; $0038
-; $003A
-; $003C
-; $003E
-; $0044
-; $0046
-; $0056
-; $0078
-; $007A
-; $007C
-; $007E
-; $008E
-; $0090
-; $0092
-; $0094
-; $0096
-; $0098
-; $009A
-; $009C
-; $009E
-; $0100
-; $0102
-; $0104
-; $0106
-; $0108
-; $010A
-; $010C
-; $010E
-; $0110
-; $0112
-; $0114
-; $0116
-; $0118
-; $011A
-; $011C
-; $011E
-; $0120
-; $0122
-; $0124
-; $0126
-; $0128
-; $012A
-; $012C
-; $012E
-; $0130
-; $0132
-; $0134
-; $0136
-; $0138
-; $013A
-; $013C
-; $013E
-; $0140
-; $0142
-; $0144
-; $0146
-; $0148
-; $014A
-; $014C
-; $014E
-; $0150
-; $0152
-; $0154
-; $0156
-; $0158
-; $015A
-; $015C
-; $015E
-; $0160
-; $0162
-; $0164
-; $0166
-; $0168
-; $016A
-; $016C
-; $016E
-; $0170
-; $0172
-; $0174
-; $0176
-; $0178
-; $017A
-; $017C
-; $017E
-; $0180
-; $0182
-; $0184
-; $0186
-; $0188
-; $018A
-; $018C
-; $018E
-; $0190
-; $0192
-; $0194
-; $0196
-; $0198
-; $019A
-; $019C
-; $019E
-; $01A0
-; $01A2
-; $01A4
-; $01A6
-; $01A8
-; $01AA
-; $01AC
-; $01AE
-; $01B0
-; $01B2
-; $01B4
-; $01B6
-; $01B8
-; $01BA
-; $01BC
-; $01BE
-; $01C0
-; $01C2
-; $01C4
-; $01C6
-; $01C8
-; $01CA
-; $01CC
-; $01CE
-; $01D0
-; $01D2
-; $01D4
-; $01D6
-; $01D8
-; $01DA
-; $01DC
-; $01DE
-; $01E0
-; $01E2
-; $01E4
-; $01E6
-; $01E8
-; $01EA
-; $01EC
-; $01EE
-; $01FC
-; $01FE
-
 *** CUSTOM SECTION END *********************************************************
-            ENDC
+                      ENDC

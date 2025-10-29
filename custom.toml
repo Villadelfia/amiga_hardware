@@ -1,0 +1,1703 @@
+title = "CUSTOM"
+short_info = "Contains all custom hardware registers and relevant bitfields."
+
+
+[[sections]]
+name = "CUSTOM SECTION START"
+type = "block"
+comment = """
+Every register is defined in two ways:
+  - COPCONW: As an offset relative to CUSTOM.
+  - CUSTOM_COPCONW: As an absolute address.
+
+Flags relevant to one register are defined in two ways:
+  - INTENAWB_DSKSYN: The bit number. 12 in this case.
+  - INTENAWF_DSKSYN: The flag. (1 << 12) or $1000 in this case.
+
+Flags that define a set of bits will only define the F variant, and it will be set to a literal with only those bits set.
+
+Flags relevant to multiple registers are defined in the same ways as flags relevant to just one register, except the number in the register name is replaced with X. For example SPR0CTLN_ATT to SPR7CTLN_ATT will instead be defined as SPRXCTLN_ATT.
+
+Strobe registers will have a "flag" named REGISTERF_STROBE, with a value of $FFFF.
+
+Registers will be sorted by general functionality. Within each section, OCS registers will come first, then the ECS registers, then the AGA registers. Within each of these sections, registers will be listed in a logical order.
+
+In the cases of OCS registers having special functionality in ECS, this will be noted. The register will still be in the OCS section.
+
+Generally, any register with an R suffix is read-only, and any register that does not have an R suffix is write-only. There are a few exceptions in both directions:
+  - Read-only: JOY0DAT, JOY1DAT, CLXDAT, DENISEID
+  - Write-only: REFPTR, SERPER, AUD0PER, AUD1PER, AUD2PER, AUD3PER, HCENTER
+  - Strobe: STRHOR
+
+Registers that have a PT(H/L) suffix are chip memory pointers that address DMA data. Must be reloaded by a processor before use (vertical blank for bitplane and sprite pointers, and prior to starting the blitter for blitter pointers).
+
+Registers that have an LC(H/L) suffix are chip memory locations (starting addresses) of DMA data. Used to automatically restart pointers, such as the Copper program counter (during vertical blank) and the audio sample counter (whenever the audio length count is finished).
+"""
+
+
+[[sections]]
+name = "BASE ADDRESS"
+type = "kv"
+comment = "This is the memory location at which the custom chips are located."
+kv = [[{ k = "CUSTOM", v = "$DFF000" }]]
+
+
+[[sections]]
+name = "DISK CONTROL REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "DSKBYTR"
+type = "kv"
+comment = """
+Relative address: $01A
+Read/write:       Read
+Chip:             Paula
+Function:         Disk data byte and status
+"""
+kv = [
+    [
+        { k = "DSKBYTR", v = "$01A" },
+    ],
+    [
+        { k = "CUSTOM_DSKBYTR", v = "CUSTOM+DSKBYTR" },
+    ],
+    [
+        { k = "DSKBYTRB_DSKBYT", v = "15" },
+        { k = "DSKBYTRB_DMAON", v = "14" },
+        { k = "DSKBYTRB_DISKWRITE", v = "13" },
+        { k = "DSKBYTRB_WORDEQUAL", v = "12" },
+    ],
+    [
+        { k = "DSKBYTRF_DSKBYT", v = "(1<<15)" },
+        { k = "DSKBYTRF_DMAON", v = "(1<<14)" },
+        { k = "DSKBYTRF_DISKWRITE", v = "(1<<13)" },
+        { k = "DSKBYTRF_WORDEQUAL", v = "(1<<12)" },
+    ],
+    [
+        { k = "DSKBYTRF_DATA", v = "$00FF" },
+    ],
+]
+
+
+[[sections]]
+name = "DSKPT (DSKPTH + DSKPTL)"
+type = "kv"
+comment = """
+Relative address: $020 + $022
+Read/write:       Write
+Chip:             Agnus
+Function:         Disk pointer
+"""
+kv = [
+    [
+        { k = "DSKPT", v = "$020" },
+        { k = "DSKPTH", v = "DSKPT" },
+        { k = "DSKPTL", v = "$022" },
+    ],
+    [
+        { k = "CUSTOM_DSKPT", v = "CUSTOM+DSKPT" },
+        { k = "CUSTOM_DSKPTH", v = "CUSTOM+DSKPTH" },
+        { k = "CUSTOM_DSKPTL", v = "CUSTOM+DSKPTL" },
+    ],
+]
+
+
+[[sections]]
+name = "DSKLEN"
+type = "kv"
+comment = """
+Relative address: $024
+Read/write:       Write
+Chip:             Paula
+Function:         Disk length
+"""
+kv = [
+    [
+        { k = "DSKLEN", v = "$024" },
+    ],
+    [
+        { k = "CUSTOM_DSKLEN", v = "CUSTOM+DSKLEN" },
+    ],
+    [
+        { k = "DSKLENB_DMAEN", v = "15" },
+        { k = "DSKLENB_WRITE", v = "14" },
+    ],
+    [
+        { k = "DSKLENF_DMAEN", v = "(1<<15)" },
+        { k = "DSKLENF_WRITE", v = "(1<<14)" },
+        { k = "DSKLENF_LEN", v = "$3FFF" },
+    ],
+]
+
+
+[[sections]]
+name = "DSKDAT"
+type = "kv"
+comment = """
+Relative address: $026
+Read/write:       Write
+Chip:             Paula
+Function:         Disk DMA data write
+"""
+kv = [
+    [
+        { k = "DSKDAT", v = "$026" },
+    ],
+    [
+        { k = "CUSTOM_DSKDAT", v = "CUSTOM+DSKDAT" },
+    ],
+]
+
+
+[[sections]]
+name = "DSKSYNC"
+type = "kv"
+comment = """
+Relative address: $07E
+Read/write:       Write
+Chip:             Paula
+Function:         Disk sync register
+"""
+kv = [
+    [
+        { k = "DSKSYNC", v = "$07E" },
+    ],
+    [
+        { k = "CUSTOM_DSKSYNC", v = "CUSTOM+DSKSYNC" },
+    ],
+]
+
+
+[[sections]]
+name = "BLITTER REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "BLTCONx"
+type = "kv"
+comment = """
+Relative address: $040 & $042
+Read/write:       Write
+Chip:             Agnus
+Function:         Blitter control registers
+"""
+kv = [
+    [
+        { k = "BLTCON0", v = "$040" },
+        { k = "BLTCON1", v = "$042" },
+    ],
+    [
+        { k = "CUSTOM_BLTCON0", v = "CUSTOM+BLTCON0" },
+        { k = "CUSTOM_BLTCON1", v = "CUSTOM+BLTCON1" },
+    ],
+    [
+        { k = "BLTCON0B_ASH3", v = "15" },
+        { k = "BLTCON0B_ASH2", v = "14" },
+        { k = "BLTCON0B_ASH1", v = "13" },
+        { k = "BLTCON0B_ASH0", v = "12" },
+        { k = "BLTCON0F_ASH", v = "$F000" },
+        { k = "BLTCON0F_ASH3", v = "(1<<15)" },
+        { k = "BLTCON0F_ASH2", v = "(1<<14)" },
+        { k = "BLTCON0F_ASH1", v = "(1<<13)" },
+        { k = "BLTCON0F_ASH0", v = "(1<<12)" },
+    ],
+    [
+        { k = "BLTCON0B_START3", v = "15" },
+        { k = "BLTCON0B_START2", v = "14" },
+        { k = "BLTCON0B_START1", v = "13" },
+        { k = "BLTCON0B_START0", v = "12" },
+        { k = "BLTCON0F_START", v = "$F000" },
+        { k = "BLTCON0F_START3", v = "(1<<15)" },
+        { k = "BLTCON0F_START2", v = "(1<<14)" },
+        { k = "BLTCON0F_START1", v = "(1<<13)" },
+        { k = "BLTCON0F_START0", v = "(1<<12)" },
+    ],
+    [
+        { k = "BLTCON1B_BSH3", v = "15" },
+        { k = "BLTCON1B_BSH2", v = "14" },
+        { k = "BLTCON1B_BSH1", v = "13" },
+        { k = "BLTCON1B_BSH0", v = "12" },
+        { k = "BLTCON1F_BSH", v = "$F000" },
+        { k = "BLTCON1F_BSH3", v = "(1<<15)" },
+        { k = "BLTCON1F_BSH2", v = "(1<<14)" },
+        { k = "BLTCON1F_BSH1", v = "(1<<13)" },
+        { k = "BLTCON1F_BSH0", v = "(1<<12)" },
+    ],
+    [
+        { k = "BLTCON1B_TEXTURE3", v = "15" },
+        { k = "BLTCON1B_TEXTURE2", v = "14" },
+        { k = "BLTCON1B_TEXTURE1", v = "13" },
+        { k = "BLTCON1B_TEXTURE0", v = "12" },
+        { k = "BLTCON1F_TEXTURE", v = "$F000" },
+        { k = "BLTCON1F_TEXTURE3", v = "(1<<15)" },
+        { k = "BLTCON1F_TEXTURE2", v = "(1<<14)" },
+        { k = "BLTCON1F_TEXTURE1", v = "(1<<13)" },
+        { k = "BLTCON1F_TEXTURE0", v = "(1<<12)" },
+    ],
+    [
+        { k = "BLTCON0B_USEA", v = "11" },
+        { k = "BLTCON0B_USEB", v = "10" },
+        { k = "BLTCON0B_USEC", v = "9" },
+        { k = "BLTCON0B_USED", v = "8" },
+        { k = "BLTCON0F_USE", v = "$F00" },
+        { k = "BLTCON0F_USEA", v = "(1<<11)" },
+        { k = "BLTCON0F_USEB", v = "(1<<10)" },
+        { k = "BLTCON0F_USEC", v = "(1<<9)" },
+        { k = "BLTCON0F_USED", v = "(1<<8)" },
+        { k = "BLTCON0F_USE_LINE", v = "$B00" },
+    ],
+    [
+        { k = "BLTCON0B_LF7", v = "7" },
+        { k = "BLTCON0B_LF6", v = "6" },
+        { k = "BLTCON0B_LF5", v = "5" },
+        { k = "BLTCON0B_LF4", v = "4" },
+        { k = "BLTCON0B_LF3", v = "3" },
+        { k = "BLTCON0B_LF2", v = "2" },
+        { k = "BLTCON0B_LF1", v = "1" },
+        { k = "BLTCON0B_LF0", v = "0" },
+        { k = "BLTCON0F_LF", v = "$00FF" },
+        { k = "BLTCON0F_LF7", v = "(1<<7)" },
+        { k = "BLTCON0F_LF6", v = "(1<<6)" },
+        { k = "BLTCON0F_LF5", v = "(1<<5)" },
+        { k = "BLTCON0F_LF4", v = "(1<<4)" },
+        { k = "BLTCON0F_LF3", v = "(1<<3)" },
+        { k = "BLTCON0F_LF2", v = "(1<<2)" },
+        { k = "BLTCON0F_LF1", v = "(1<<1)" },
+        { k = "BLTCON0F_LF0", v = "(1<<0)" },
+    ],
+    [
+        { k = "BLTCON1B_DOFF", v = "7" },
+        { k = "BLTCON1F_DOFF", v = "(1<<7)" },
+    ],
+    [
+        { k = "BLTCON1B_SIGN", v = "6" },
+        { k = "BLTCON1F_SIGN", v = "(1<<6)" },
+    ],
+    [
+        { k = "BLTCON1B_OVF", v = "5" },
+        { k = "BLTCON1F_OVF", v = "(1<<5)" },
+    ],
+    [
+        { k = "BLTCON1B_EFE", v = "4" },
+        { k = "BLTCON1B_SUD", v = "4" },
+        { k = "BLTCON1F_EFE", v = "(1<<4)" },
+        { k = "BLTCON1F_SUD", v = "(1<<4)" },
+    ],
+    [
+        { k = "BLTCON1B_IFE", v = "3" },
+        { k = "BLTCON1B_SUL", v = "3" },
+        { k = "BLTCON1F_IFE", v = "(1<<3)" },
+        { k = "BLTCON1F_SUL", v = "(1<<3)" },
+    ],
+    [
+        { k = "BLTCON1B_FCI", v = "2" },
+        { k = "BLTCON1B_AUL", v = "2" },
+        { k = "BLTCON1F_FCI", v = "(1<<2)" },
+        { k = "BLTCON1F_AUL", v = "(1<<2)" },
+    ],
+    [
+        { k = "BLTCON1B_DESC", v = "1" },
+        { k = "BLTCON1B_SING", v = "1" },
+        { k = "BLTCON1B_ONEDOT", v = "1" },
+        { k = "BLTCON1F_DESC", v = "(1<<1)" },
+        { k = "BLTCON1F_SING", v = "(1<<1)" },
+        { k = "BLTCON1F_ONEDOT", v = "(1<<1)" },
+    ],
+    [
+        { k = "BLTCON1B_LINE", v = "0" },
+        { k = "BLTCON1F_LINE", v = "(1<<0)" },
+    ],
+    [
+        { k = "BLTCON1F_OCTANT0", v = "$18" },
+        { k = "BLTCON1F_OCTANT1", v = "$04" },
+        { k = "BLTCON1F_OCTANT2", v = "$0C" },
+        { k = "BLTCON1F_OCTANT3", v = "$1C" },
+        { k = "BLTCON1F_OCTANT4", v = "$14" },
+        { k = "BLTCON1F_OCTANT5", v = "$08" },
+        { k = "BLTCON1F_OCTANT6", v = "$00" },
+        { k = "BLTCON1F_OCTANT7", v = "$10" },
+    ],
+    [
+        { k = "BLTCON0F_LF_NOP", v = "$00" },
+        { k = "BLTCON0F_LF_xxx", v = "$FF" },
+        { k = "BLTCON0F_LF_Axx", v = "$F0" },
+        { k = "BLTCON0F_LF_axx", v = "$0F" },
+        { k = "BLTCON0F_LF_xBx", v = "$CC" },
+        { k = "BLTCON0F_LF_ABx", v = "$C0" },
+        { k = "BLTCON0F_LF_aBx", v = "$0C" },
+        { k = "BLTCON0F_LF_xbx", v = "$33" },
+        { k = "BLTCON0F_LF_Abx", v = "$30" },
+        { k = "BLTCON0F_LF_abx", v = "$03" },
+        { k = "BLTCON0F_LF_xxC", v = "$AA" },
+        { k = "BLTCON0F_LF_AxC", v = "$A0" },
+        { k = "BLTCON0F_LF_axC", v = "$0A" },
+        { k = "BLTCON0F_LF_xBC", v = "$88" },
+        { k = "BLTCON0F_LF_ABC", v = "$80" },
+        { k = "BLTCON0F_LF_aBC", v = "$08" },
+        { k = "BLTCON0F_LF_xbC", v = "$22" },
+        { k = "BLTCON0F_LF_AbC", v = "$20" },
+        { k = "BLTCON0F_LF_abC", v = "$02" },
+        { k = "BLTCON0F_LF_xxc", v = "$55" },
+        { k = "BLTCON0F_LF_Axc", v = "$50" },
+        { k = "BLTCON0F_LF_axc", v = "$05" },
+        { k = "BLTCON0F_LF_xBc", v = "$44" },
+        { k = "BLTCON0F_LF_ABc", v = "$40" },
+        { k = "BLTCON0F_LF_aBc", v = "$04" },
+        { k = "BLTCON0F_LF_xbc", v = "$11" },
+        { k = "BLTCON0F_LF_Abc", v = "$10" },
+        { k = "BLTCON0F_LF_abc", v = "$01" },
+    ],
+    [
+        { k = "BLTCON0F_MINTERM_ABC", v = "$80" },
+        { k = "BLTCON0F_MINTERM_ABc", v = "$40" },
+        { k = "BLTCON0F_MINTERM_AbC", v = "$20" },
+        { k = "BLTCON0F_MINTERM_Abc", v = "$10" },
+        { k = "BLTCON0F_MINTERM_aBC", v = "$08" },
+        { k = "BLTCON0F_MINTERM_aBc", v = "$04" },
+        { k = "BLTCON0F_MINTERM_abC", v = "$02" },
+        { k = "BLTCON0F_MINTERM_abc", v = "$01" },
+    ],
+    [
+        { k = "BLTCON0F_LF_LINE_OVER", v = "$CF" },
+        { k = "BLTCON0F_LF_LINE_XOR", v = "$4A" },
+    ],
+]
+
+
+[[sections]]
+name = "BLTAFWM & BLTALWM"
+type = "kv"
+comment = """
+Relative address: $044 & $046
+Read/write:       Write
+Chip:             Agnus
+Function:         Blitter first/last-word mask for source A
+"""
+kv = [
+    [
+        { k = "BLTAFWM", v = "$044" },
+        { k = "BLTALWM", v = "$046" },
+    ],
+    [
+        { k = "CUSTOM_BLTAFWM", v = "CUSTOM+BLTAFWM" },
+        { k = "CUSTOM_BLTALWM", v = "CUSTOM+BLTALWM" },
+    ],
+]
+
+
+[[sections]]
+name = "BLTxPT (BLTxPTH + BLTxPTL)"
+type = "kv"
+comment = """
+Relative address: $048 + $04A & $04C + $04E &
+                  $050 + $052 & $054 + $056
+Read/write:       Write
+Chip:             Agnus
+Function:         Blitter pointer to A/B/C/D
+"""
+kv = [
+    [
+        { k = "BLTCPT", v = "$048" },
+        { k = "BLTCPTH", v = "BLTCPT" },
+        { k = "BLTCPTL", v = "$04A" },
+        { k = "BLTBPT", v = "$04C" },
+        { k = "BLTBPTH", v = "BLTBPT" },
+        { k = "BLTBPTL", v = "$04E" },
+        { k = "BLTAPT", v = "$050" },
+        { k = "BLTAPTH", v = "BLTAPT" },
+        { k = "BLTAPTL", v = "$052" },
+        { k = "BLTDPT", v = "$054" },
+        { k = "BLTDPTH", v = "BLTDPT" },
+        { k = "BLTDPTL", v = "$056" },
+    ],
+    [
+        { k = "CUSTOM_BLTCPT", v = "CUSTOM+BLTCPT" },
+        { k = "CUSTOM_BLTCPTH", v = "CUSTOM+BLTCPTH" },
+        { k = "CUSTOM_BLTCPTL", v = "CUSTOM+BLTCPTL" },
+        { k = "CUSTOM_BLTBPT", v = "CUSTOM+BLTBPT" },
+        { k = "CUSTOM_BLTBPTH", v = "CUSTOM+BLTBPTH" },
+        { k = "CUSTOM_BLTBPTL", v = "CUSTOM+BLTBPTL" },
+        { k = "CUSTOM_BLTAPT", v = "CUSTOM+BLTAPT" },
+        { k = "CUSTOM_BLTAPTH", v = "CUSTOM+BLTAPTH" },
+        { k = "CUSTOM_BLTAPTL", v = "CUSTOM+BLTAPTL" },
+        { k = "CUSTOM_BLTDPT", v = "CUSTOM+BLTDPT" },
+        { k = "CUSTOM_BLTDPTH", v = "CUSTOM+BLTDPTH" },
+        { k = "CUSTOM_BLTDPTL", v = "CUSTOM+BLTDPTL" },
+    ],
+]
+
+
+[[sections]]
+name = "BLTxDAT"
+type = "kv"
+comment = """
+Relative address: $070 & $072 & $074
+Read/write:       Write
+Chip:             Agnus
+Function:         Blitter source A/B/C data register
+"""
+kv = [
+    [
+        { k = "BLTCDAT", v = "$070" },
+        { k = "BLTBDAT", v = "$072" },
+        { k = "BLTADAT", v = "$074" },
+    ],
+    [
+        { k = "CUSTOM_BLTCDAT", v = "CUSTOM+BLTCDAT" },
+        { k = "CUSTOM_BLTBDAT", v = "CUSTOM+BLTBDAT" },
+        { k = "CUSTOM_BLTADAT", v = "CUSTOM+BLTADAT" },
+    ],
+]
+
+
+[[sections]]
+name = "BLTxMOD"
+type = "kv"
+comment = """
+Relative address: $060 & $062 & $064 & $066
+Read/write:       Write
+Chip:             Agnus
+Function:         Blitter modulo A/B/C/D
+"""
+kv = [
+    [
+        { k = "BLTCMOD", v = "$060" },
+        { k = "BLTBMOD", v = "$062" },
+        { k = "BLTAMOD", v = "$064" },
+        { k = "BLTDMOD", v = "$066" },
+    ],
+    [
+        { k = "CUSTOM_BLTCMOD", v = "CUSTOM+BLTCMOD" },
+        { k = "CUSTOM_BLTBMOD", v = "CUSTOM+BLTBMOD" },
+        { k = "CUSTOM_BLTAMOD", v = "CUSTOM+BLTAMOD" },
+        { k = "CUSTOM_BLTDMOD", v = "CUSTOM+BLTDMOD" },
+    ],
+]
+
+
+[[sections]]
+name = "BLTSIZE"
+type = "kv"
+comment = """
+Relative address: $058
+Read/write:       Write
+Chip:             Agnus
+Function:         Blitter start and size (window width, height)
+"""
+kv = [
+    [
+        { k = "BLTSIZE", v = "$058" },
+    ],
+    [
+        { k = "CUSTOM_BLTSIZE", v = "CUSTOM+BLTSIZE" },
+    ],
+    [
+        { k = "BLTSIZEB_HEIGHT9", v = "15" },
+        { k = "BLTSIZEB_HEIGHT8", v = "14" },
+        { k = "BLTSIZEB_HEIGHT7", v = "13" },
+        { k = "BLTSIZEB_HEIGHT6", v = "12" },
+        { k = "BLTSIZEB_HEIGHT5", v = "11" },
+        { k = "BLTSIZEB_HEIGHT4", v = "10" },
+        { k = "BLTSIZEB_HEIGHT3", v = "9" },
+        { k = "BLTSIZEB_HEIGHT2", v = "8" },
+        { k = "BLTSIZEB_HEIGHT1", v = "7" },
+        { k = "BLTSIZEB_HEIGHT0", v = "6" },
+        { k = "BLTSIZEF_HEIGHT", v = "$FFC0" },
+        { k = "BLTSIZEF_HEIGHT9", v = "(1<<15)" },
+        { k = "BLTSIZEF_HEIGHT8", v = "(1<<14)" },
+        { k = "BLTSIZEF_HEIGHT7", v = "(1<<13)" },
+        { k = "BLTSIZEF_HEIGHT6", v = "(1<<12)" },
+        { k = "BLTSIZEF_HEIGHT5", v = "(1<<11)" },
+        { k = "BLTSIZEF_HEIGHT4", v = "(1<<10)" },
+        { k = "BLTSIZEF_HEIGHT3", v = "(1<<9)" },
+        { k = "BLTSIZEF_HEIGHT2", v = "(1<<8)" },
+        { k = "BLTSIZEF_HEIGHT1", v = "(1<<7)" },
+        { k = "BLTSIZEF_HEIGHT0", v = "(1<<6)" },
+    ],
+    [
+        { k = "BLTSIZEB_WIDTH5", v = "5" },
+        { k = "BLTSIZEB_WIDTH4", v = "4" },
+        { k = "BLTSIZEB_WIDTH3", v = "3" },
+        { k = "BLTSIZEB_WIDTH2", v = "2" },
+        { k = "BLTSIZEB_WIDTH1", v = "1" },
+        { k = "BLTSIZEB_WIDTH0", v = "0" },
+        { k = "BLTSIZEF_WIDTH", v = "$3F" },
+        { k = "BLTSIZEF_WIDTH5", v = "(1<<5)" },
+        { k = "BLTSIZEF_WIDTH4", v = "(1<<4)" },
+        { k = "BLTSIZEF_WIDTH3", v = "(1<<3)" },
+        { k = "BLTSIZEF_WIDTH2", v = "(1<<2)" },
+        { k = "BLTSIZEF_WIDTH1", v = "(1<<1)" },
+        { k = "BLTSIZEF_WIDTH0", v = "(1<<0)" },
+    ],
+]
+
+
+[[sections]]
+name = "(ECS) BLTCON0L"
+type = "kv"
+comment = """
+Relative address: $05B
+Read/write:       Write
+Chip:             Agnus
+Function:         BLTCON0 lower 8 bits
+Note: Byte access only. See also BLTCON0.
+"""
+kv = [
+    [
+        { k = "BLTCON0L", v = "$05B" },
+    ],
+    [
+        { k = "CUSTOM_BLTCON0L", v = "CUSTOM+BLTCON0L" },
+    ],
+]
+
+
+[[sections]]
+name = "BLTSIZV & BLTSIZH"
+type = "kv"
+comment = """
+Relative address: $05C & $05E
+Read/write:       Write
+Chip:             Agnus
+Function:         Blitter 15 bit height & blitter 11 bit width (+start)
+"""
+kv = [
+    [
+        { k = "BLTSIZV", v = "$05C" },
+        { k = "BLTSIZH", v = "$05E" },
+    ],
+    [
+        { k = "CUSTOM_BLTSIZV", v = "CUSTOM+BLTSIZV" },
+        { k = "CUSTOM_BLTSIZH", v = "CUSTOM+BLTSIZH" },
+    ],
+]
+
+
+[[sections]]
+name = "COPPER CONTROL REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "COPCON"
+type = "kv"
+comment = """
+Relative address: $02E
+Read/write:       Write
+Chip:             Agnus
+Function:         Copper control register
+"""
+kv = [
+    [
+        { k = "COPCON", v = "$02E" },
+    ],
+    [
+        { k = "CUSTOM_COPCON", v = "CUSTOM+COPCON" },
+    ],
+    [
+        { k = "COPCONB_CDANG", v = "1" },
+        { k = "COPCONF_CDANG", v = "(1<<1)" },
+    ],
+]
+
+
+[[sections]]
+name = "COPxLC (COPxLCH + COPxLCL)"
+type = "kv"
+comment = """
+Relative address: $080 + $082 & $084 + $086
+Read/write:       Write
+Chip:             Agnus
+Function:         Copper list 1/2 pointer registers
+"""
+kv = [
+    [
+        { k = "COP1LC", v = "$080" },
+        { k = "COP1LCH", v = "COP1LC" },
+        { k = "COP1LCL", v = "$082" },
+        { k = "COP2LC", v = "$084" },
+        { k = "COP2LCH", v = "COP2LC" },
+        { k = "COP2LCL", v = "$086" },
+    ],
+    [
+        { k = "CUSTOM_COP1LC", v = "CUSTOM+COP1LC" },
+        { k = "CUSTOM_COP1LCH", v = "CUSTOM+COP1LCH" },
+        { k = "CUSTOM_COP1LCL", v = "CUSTOM+COP1LCL" },
+        { k = "CUSTOM_COP2LC", v = "CUSTOM+COP2LC" },
+        { k = "CUSTOM_COP2LCH", v = "CUSTOM+COP2LCH" },
+        { k = "CUSTOM_COP2LCL", v = "CUSTOM+COP2LCL" },
+    ],
+]
+
+
+[[sections]]
+name = "COPJMPx"
+type = "kv"
+comment = """
+Relative address: $088 & $08A
+Read/write:       Strobe
+Chip:             Agnus
+Function:         Copper list 1/2 restart strobe
+"""
+kv = [
+    [
+        { k = "COPJMP1", v = "$088" },
+        { k = "COPJMP2", v = "$08A" },
+    ],
+    [
+        { k = "CUSTOM_COPJMP1", v = "CUSTOM+COPJMP1" },
+        { k = "CUSTOM_COPJMP2", v = "CUSTOM+COPJMP2" },
+    ],
+    [
+        { k = "COPJMP1F_STROBE", v = "$FFFF" },
+        { k = "COPJMP2F_STROBE", v = "$FFFF" },
+    ],
+]
+
+
+[[sections]]
+name = "AUDIO CHANNEL REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "ADKCON & ADKCONR"
+type = "kv"
+comment = """
+Relative address: $09E & $010
+Read/write:       Write & Read
+Chip:             Agnus
+Function:         Audio+disk control
+"""
+kv = [
+    [
+        { k = "ADKCON", v = "$09E" },
+        { k = "ADKCONR", v = "$010" },
+    ],
+    [
+        { k = "CUSTOM_ADKCON", v = "CUSTOM+ADKCON" },
+        { k = "CUSTOM_ADKCONR", v = "CUSTOM+ADKCONR" },
+    ],
+    [
+        { k = "ADKCONB_SETCLR", v = "15" },
+        { k = "ADKCONB_PRECOMP1", v = "14" },
+        { k = "ADKCONB_PRECOMP0", v = "13" },
+        { k = "ADKCONB_MFMPREC", v = "12" },
+        { k = "ADKCONB_UARTBRK", v = "11" },
+        { k = "ADKCONB_WORDSYNC", v = "10" },
+        { k = "ADKCONB_MSBSYNC", v = "9" },
+        { k = "ADKCONB_FAST", v = "8" },
+        { k = "ADKCONF_SETCLR", v = "(1<<15)" },
+        { k = "ADKCONF_PRECOMP1", v = "(1<<14)" },
+        { k = "ADKCONF_PRECOMP0", v = "(1<<13)" },
+        { k = "ADKCONF_MFMPREC", v = "(1<<12)" },
+        { k = "ADKCONF_UARTBRK", v = "(1<<11)" },
+        { k = "ADKCONF_WORDSYNC", v = "(1<<10)" },
+        { k = "ADKCONF_MSBSYNC", v = "(1<<9)" },
+        { k = "ADKCONF_FAST", v = "(1<<8)" },
+    ],
+    [
+        { k = "ADKCONB_USE3PN", v = "7" },
+        { k = "ADKCONB_USE2P3", v = "6" },
+        { k = "ADKCONB_USE1P2", v = "5" },
+        { k = "ADKCONB_USE0P1", v = "4" },
+        { k = "ADKCONF_USE3PN", v = "(1<<7)" },
+        { k = "ADKCONF_USE2P3", v = "(1<<6)" },
+        { k = "ADKCONF_USE1P2", v = "(1<<5)" },
+        { k = "ADKCONF_USE0P1", v = "(1<<4)" },
+    ],
+    [
+        { k = "ADKCONB_USE3VN", v = "3" },
+        { k = "ADKCONB_USE2V3", v = "2" },
+        { k = "ADKCONB_USE1V2", v = "1" },
+        { k = "ADKCONB_USE0V1", v = "0" },
+        { k = "ADKCONF_USE3VN", v = "(1<<3)" },
+        { k = "ADKCONF_USE2V3", v = "(1<<2)" },
+        { k = "ADKCONF_USE1V2", v = "(1<<1)" },
+        { k = "ADKCONF_USE0V1", v = "(1<<0)" },
+    ],
+    [
+        { k = "ADKCONF_PRE000NS", v = "$0000" },
+        { k = "ADKCONF_PRE140NS", v = "$2000" },
+        { k = "ADKCONF_PRE280NS", v = "$4000" },
+        { k = "ADKCONF_PRE560NS", v = "$6000" },
+    ],
+]
+
+
+[[sections]]
+name = "AUDxLC (AUDxLCH + AUDxLCL)"
+type = "kv"
+comment = """
+Relative address: $0A0 + $0A2 & $0B0 + $0B2 &
+                  $0C0 + $0C2 & $0D0 + $0D2
+Read/write:       Write
+Chip:             Agnus
+Function:         Audio channel x location
+"""
+kv = [
+    [
+        { k = "AUD0LC", v = "$0A0" },
+        { k = "AUD0LCH", v = "AUD0LC" },
+        { k = "AUD0LCL", v = "$0A2" },
+        { k = "AUD1LC", v = "$0B0" },
+        { k = "AUD1LCH", v = "AUD1LC" },
+        { k = "AUD1LCL", v = "$0B2" },
+        { k = "AUD2LC", v = "$0C0" },
+        { k = "AUD2LCH", v = "AUD2LC" },
+        { k = "AUD2LCL", v = "$0C2" },
+        { k = "AUD3LC", v = "$0D0" },
+        { k = "AUD3LCH", v = "AUD3LC" },
+        { k = "AUD3LCL", v = "$0D2" },
+    ],
+    [
+        { k = "CUSTOM_AUD0LC", v = "CUSTOM+AUD0LC" },
+        { k = "CUSTOM_AUD0LCH", v = "CUSTOM+AUD0LCH" },
+        { k = "CUSTOM_AUD0LCL", v = "CUSTOM+AUD0LCL" },
+        { k = "CUSTOM_AUD1LC", v = "CUSTOM+AUD1LC" },
+        { k = "CUSTOM_AUD1LCH", v = "CUSTOM+AUD1LCH" },
+        { k = "CUSTOM_AUD1LCL", v = "CUSTOM+AUD1LCL" },
+        { k = "CUSTOM_AUD2LC", v = "CUSTOM+AUD2LC" },
+        { k = "CUSTOM_AUD2LCH", v = "CUSTOM+AUD2LCH" },
+        { k = "CUSTOM_AUD2LCL", v = "CUSTOM+AUD2LCL" },
+        { k = "CUSTOM_AUD3LC", v = "CUSTOM+AUD3LC" },
+        { k = "CUSTOM_AUD3LCH", v = "CUSTOM+AUD3LCH" },
+        { k = "CUSTOM_AUD3LCL", v = "CUSTOM+AUD3LCL" },
+    ],
+]
+
+
+[[sections]]
+name = "AUDxLEN"
+type = "kv"
+comment = """
+Relative address: $0A4 & $0B4 & $0C4 & $0D4
+Read/write:       Write
+Chip:             Paula
+Function:         Audio channel x length
+"""
+kv = [
+    [
+        { k = "AUD0LEN", v = "$0A4" },
+        { k = "AUD1LEN", v = "$0B4" },
+        { k = "AUD2LEN", v = "$0C4" },
+        { k = "AUD3LEN", v = "$0D4" },
+    ],
+    [
+        { k = "CUSTOM_AUD0LEN", v = "CUSTOM+AUD0LEN" },
+        { k = "CUSTOM_AUD1LEN", v = "CUSTOM+AUD1LEN" },
+        { k = "CUSTOM_AUD2LEN", v = "CUSTOM+AUD2LEN" },
+        { k = "CUSTOM_AUD3LEN", v = "CUSTOM+AUD3LEN" },
+    ],
+]
+
+
+[[sections]]
+name = "AUDxPER"
+type = "kv"
+comment = """
+Relative address: $0A6 & $0B6 & $0C6 & $0D6
+Read/write:       Write
+Chip:             Paula
+Function:         Audio channel x period
+"""
+kv = [
+    [
+        { k = "AUD0PER", v = "$0A6" },
+        { k = "AUD1PER", v = "$0B6" },
+        { k = "AUD2PER", v = "$0C6" },
+        { k = "AUD3PER", v = "$0D6" },
+    ],
+    [
+        { k = "CUSTOM_AUD0PER", v = "CUSTOM+AUD0PER" },
+        { k = "CUSTOM_AUD1PER", v = "CUSTOM+AUD1PER" },
+        { k = "CUSTOM_AUD2PER", v = "CUSTOM+AUD2PER" },
+        { k = "CUSTOM_AUD3PER", v = "CUSTOM+AUD3PER" },
+    ],
+]
+
+
+[[sections]]
+name = "AUDxVOL"
+type = "kv"
+comment = """
+Relative address: $0A8 & $0B8 & $0C8 & $0D8
+Read/write:       Write
+Chip:             Paula
+Function:         Audio channel x volume
+"""
+kv = [
+    [
+        { k = "AUD0VOL", v = "$0A8" },
+        { k = "AUD1VOL", v = "$0B8" },
+        { k = "AUD2VOL", v = "$0C8" },
+        { k = "AUD3VOL", v = "$0D8" },
+    ],
+    [
+        { k = "CUSTOM_AUD0VOL", v = "CUSTOM+AUD0VOL" },
+        { k = "CUSTOM_AUD1VOL", v = "CUSTOM+AUD1VOL" },
+        { k = "CUSTOM_AUD2VOL", v = "CUSTOM+AUD2VOL" },
+        { k = "CUSTOM_AUD3VOL", v = "CUSTOM+AUD3VOL" },
+    ],
+]
+
+
+[[sections]]
+name = "AUDxDAT"
+type = "kv"
+comment = """
+Relative address: $0AA & $0BA & $0CA & $0DA
+Read/write:       Write
+Chip:             Paula
+Function:         Audio channel x data
+"""
+kv = [
+    [
+        { k = "AUD0DAT", v = "$0AA" },
+        { k = "AUD1DAT", v = "$0BA" },
+        { k = "AUD2DAT", v = "$0CA" },
+        { k = "AUD3DAT", v = "$0DA" },
+    ],
+    [
+        { k = "CUSTOM_AUD0DAT", v = "CUSTOM+AUD0DAT" },
+        { k = "CUSTOM_AUD1DAT", v = "CUSTOM+AUD1DAT" },
+        { k = "CUSTOM_AUD2DAT", v = "CUSTOM+AUD2DAT" },
+        { k = "CUSTOM_AUD3DAT", v = "CUSTOM+AUD3DAT" },
+    ],
+]
+
+
+[[sections]]
+name = "BITPLANE REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "BPLxPT (BPLxPTH + BPLxPTL)"
+type = "kv"
+comment = """
+Relative address: $0E0 + $0E2 & $0E4 + $0E6 &
+                  $0E8 + $0EA & $0EC + $0EE &
+                  $0F0 + $0F2 & $0F4 + $0F6 &
+                  $0F8 + $0FA & $0FC + $0FE
+Read/write:       Write
+Chip:             Agnus
+Function:         Bitplane x pointer
+"""
+kv = [
+    [
+        { k = "BPL1PT", v = "$0E0" },
+        { k = "BPL1PTH", v = "BPL1PT" },
+        { k = "BPL1PTL", v = "$0E2" },
+        { k = "BPL2PT", v = "$0E4" },
+        { k = "BPL2PTH", v = "BPL2PT" },
+        { k = "BPL2PTL", v = "$0E6" },
+        { k = "BPL3PT", v = "$0E8" },
+        { k = "BPL3PTH", v = "BPL3PT" },
+        { k = "BPL3PTL", v = "$0EA" },
+        { k = "BPL4PT", v = "$0EC" },
+        { k = "BPL4PTH", v = "BPL4PT" },
+        { k = "BPL4PTL", v = "$0EE" },
+        { k = "BPL5PT", v = "$0F0" },
+        { k = "BPL5PTH", v = "BPL5PT" },
+        { k = "BPL5PTL", v = "$0F2" },
+        { k = "BPL6PT", v = "$0F4" },
+        { k = "BPL6PTH", v = "BPL6PT" },
+        { k = "BPL6PTL", v = "$0F6" },
+        { c = "AGA", k = "BPL7PT", v = "$0F8" },
+        { c = "AGA", k = "BPL7PTH", v = "BPL7PT" },
+        { c = "AGA", k = "BPL7PTL", v = "$0FA" },
+        { c = "AGA", k = "BPL8PT", v = "$0FC" },
+        { c = "AGA", k = "BPL8PTH", v = "BPL8PT" },
+        { c = "AGA", k = "BPL8PTL", v = "$0FE" },
+    ],
+    [
+        { k = "CUSTOM_BPL1PT", v = "CUSTOM+BPL1PT" },
+        { k = "CUSTOM_BPL1PTH", v = "CUSTOM+BPL1PTH" },
+        { k = "CUSTOM_BPL1PTL", v = "CUSTOM+BPL1PTL" },
+        { k = "CUSTOM_BPL2PT", v = "CUSTOM+BPL2PT" },
+        { k = "CUSTOM_BPL2PTH", v = "CUSTOM+BPL2PTH" },
+        { k = "CUSTOM_BPL2PTL", v = "CUSTOM+BPL2PTL" },
+        { k = "CUSTOM_BPL3PT", v = "CUSTOM+BPL3PT" },
+        { k = "CUSTOM_BPL3PTH", v = "CUSTOM+BPL3PTH" },
+        { k = "CUSTOM_BPL3PTL", v = "CUSTOM+BPL3PTL" },
+        { k = "CUSTOM_BPL4PT", v = "CUSTOM+BPL4PT" },
+        { k = "CUSTOM_BPL4PTH", v = "CUSTOM+BPL4PTH" },
+        { k = "CUSTOM_BPL4PTL", v = "CUSTOM+BPL4PTL" },
+        { k = "CUSTOM_BPL5PT", v = "CUSTOM+BPL5PT" },
+        { k = "CUSTOM_BPL5PTH", v = "CUSTOM+BPL5PTH" },
+        { k = "CUSTOM_BPL5PTL", v = "CUSTOM+BPL5PTL" },
+        { k = "CUSTOM_BPL6PT", v = "CUSTOM+BPL6PT" },
+        { k = "CUSTOM_BPL6PTH", v = "CUSTOM+BPL6PTH" },
+        { k = "CUSTOM_BPL6PTL", v = "CUSTOM+BPL6PTL" },
+        { c = "AGA", k = "CUSTOM_BPL7PT", v = "CUSTOM+BPL7PT" },
+        { c = "AGA", k = "CUSTOM_BPL7PTH", v = "CUSTOM+BPL7PTH" },
+        { c = "AGA", k = "CUSTOM_BPL7PTL", v = "CUSTOM+BPL7PTL" },
+        { c = "AGA", k = "CUSTOM_BPL8PT", v = "CUSTOM+BPL8PT" },
+        { c = "AGA", k = "CUSTOM_BPL8PTH", v = "CUSTOM+BPL8PTH" },
+        { c = "AGA", k = "CUSTOM_BPL8PTL", v = "CUSTOM+BPL8PTL" },
+    ],
+]
+
+
+[[sections]]
+name = "BPLCONx"
+type = "kv"
+comment = """
+Relative address: $100 & $102 & $104 & $106 & $10C
+Read/write:       Write
+Chip:             Agnus & Denise
+Function:         Bitplane control registers
+"""
+kv = [
+    [
+        { k = "BPLCON0", v = "$100" },
+        { k = "BPLCON1", v = "$102" },
+        { k = "BPLCON2", v = "$104" },
+        { k = "BPLCON3", v = "$106" },
+        { c = "AGA", k = "BPLCON4", v = "$10C" },
+    ],
+    [
+        { k = "CUSTOM_BPLCON0", v = "CUSTOM+BPLCON0" },
+        { k = "CUSTOM_BPLCON1", v = "CUSTOM+BPLCON1" },
+        { k = "CUSTOM_BPLCON2", v = "CUSTOM+BPLCON2" },
+        { k = "CUSTOM_BPLCON3", v = "CUSTOM+BPLCON3" },
+        { c = "AGA", k = "CUSTOM_BPLCON4", v = "CUSTOM+BPLCON4" },
+    ],
+    [
+        { k = "BPLCON0B_HIRES", v = "15" },
+        { k = "BPLCON0B_BPU2", v = "14" },
+        { k = "BPLCON0B_BPU1", v = "13" },
+        { k = "BPLCON0B_BPU0", v = "12" },
+        { k = "BPLCON0B_HAM", v = "11" },
+        { k = "BPLCON0B_HOMOD", v = "11" },
+        { k = "BPLCON0B_DPF", v = "10" },
+        { k = "BPLCON0B_DBLPF", v = "10" },
+        { k = "BPLCON0B_COLOR", v = "9" },
+        { k = "BPLCON0B_GAUD", v = "8" },
+        { c = "AGA", k = "BPLCON0B_UHRES", v = "7" },
+        { c = "AGA", k = "BPLCON0B_SHRES", v = "6" },
+        { c = "AGA", k = "BPLCON0B_BYPASS", v = "5" },
+        { c = "AGA", k = "BPLCON0B_BPU3", v = "4" },
+        { k = "BPLCON0B_LPEN", v = "3" },
+        { k = "BPLCON0B_LACE", v = "2" },
+        { k = "BPLCON0B_ERSY", v = "1" },
+        { k = "BPLCON0B_ECSENA", v = "0" },
+        { k = "BPLCON0F_HIRES", v = "(1<<15)" },
+        { k = "BPLCON0F_BPU2", v = "(1<<14)" },
+        { k = "BPLCON0F_BPU1", v = "(1<<13)" },
+        { k = "BPLCON0F_BPU0", v = "(1<<12)" },
+        { k = "BPLCON0F_HAM", v = "(1<<11)" },
+        { k = "BPLCON0F_HOMOD", v = "(1<<11)" },
+        { k = "BPLCON0F_DPF", v = "(1<<10)" },
+        { k = "BPLCON0F_DBLPF", v = "(1<<10)" },
+        { k = "BPLCON0F_COLOR", v = "(1<<9)" },
+        { k = "BPLCON0F_GAUD", v = "(1<<8)" },
+        { c = "AGA", k = "BPLCON0F_UHRES", v = "(1<<7)" },
+        { c = "AGA", k = "BPLCON0F_SHRES", v = "(1<<6)" },
+        { c = "AGA", k = "BPLCON0F_BYPASS", v = "(1<<5)" },
+        { c = "AGA", k = "BPLCON0F_BPU3", v = "(1<<4)" },
+        { k = "BPLCON0F_LPEN", v = "(1<<3)" },
+        { k = "BPLCON0F_LACE", v = "(1<<2)" },
+        { k = "BPLCON0F_ERSY", v = "(1<<1)" },
+        { k = "BPLCON0F_ECSENA", v = "(1<<0)" },
+    ],
+    [
+        { c = "AGA", k = "BPLCON1B_PF2H7", v = "15" },
+        { c = "AGA", k = "BPLCON1B_PF2H6", v = "14" },
+        { c = "AGA", k = "BPLCON1B_PF2H1", v = "13" },
+        { c = "AGA", k = "BPLCON1B_PF2H0", v = "12" },
+        { c = "AGA", k = "BPLCON1B_PF1H7", v = "11" },
+        { c = "AGA", k = "BPLCON1B_PF1H6", v = "10" },
+        { c = "AGA", k = "BPLCON1B_PF1H1", v = "9" },
+        { c = "AGA", k = "BPLCON1B_PF1H0", v = "8" },
+        { c = "AGA", k = "BPLCON1B_PF2H5", v = "7" },
+        { c = "AGA", k = "BPLCON1B_PF2H4", v = "6" },
+        { c = "AGA", k = "BPLCON1B_PF2H3", v = "5" },
+        { c = "AGA", k = "BPLCON1B_PF2H2", v = "4" },
+        { c = "AGA", k = "BPLCON1B_PF1H5", v = "3" },
+        { c = "AGA", k = "BPLCON1B_PF1H4", v = "2" },
+        { c = "AGA", k = "BPLCON1B_PF1H3", v = "1" },
+        { c = "AGA", k = "BPLCON1B_PF1H2", v = "0" },
+        { c = "AGA", k = "BPLCON1F_PF2H7", v = "(1<<15)" },
+        { c = "AGA", k = "BPLCON1F_PF2H6", v = "(1<<14)" },
+        { c = "AGA", k = "BPLCON1F_PF2H1", v = "(1<<13)" },
+        { c = "AGA", k = "BPLCON1F_PF2H0", v = "(1<<12)" },
+        { c = "AGA", k = "BPLCON1F_PF1H7", v = "(1<<11)" },
+        { c = "AGA", k = "BPLCON1F_PF1H6", v = "(1<<10)" },
+        { c = "AGA", k = "BPLCON1F_PF1H1", v = "(1<<9)" },
+        { c = "AGA", k = "BPLCON1F_PF1H0", v = "(1<<8)" },
+        { c = "AGA", k = "BPLCON1F_PF2H5", v = "(1<<7)" },
+        { c = "AGA", k = "BPLCON1F_PF2H4", v = "(1<<6)" },
+        { c = "AGA", k = "BPLCON1F_PF2H3", v = "(1<<5)" },
+        { c = "AGA", k = "BPLCON1F_PF2H2", v = "(1<<4)" },
+        { c = "AGA", k = "BPLCON1F_PF1H5", v = "(1<<3)" },
+        { c = "AGA", k = "BPLCON1F_PF1H4", v = "(1<<2)" },
+        { c = "AGA", k = "BPLCON1F_PF1H3", v = "(1<<1)" },
+        { c = "AGA", k = "BPLCON1F_PF1H2", v = "(1<<0)" },
+        { c = "ECS", k = "BPLCON1B_PF2H5", v = "7" },
+        { c = "ECS", k = "BPLCON1B_PF2H4", v = "6" },
+        { c = "ECS", k = "BPLCON1B_PF2H3", v = "5" },
+        { c = "ECS", k = "BPLCON1B_PF2H2", v = "4" },
+        { c = "ECS", k = "BPLCON1B_PF1H5", v = "3" },
+        { c = "ECS", k = "BPLCON1B_PF1H4", v = "2" },
+        { c = "ECS", k = "BPLCON1B_PF1H3", v = "1" },
+        { c = "ECS", k = "BPLCON1B_PF1H2", v = "0" },
+        { c = "ECS", k = "BPLCON1F_PF2H3", v = "(1<<7)" },
+        { c = "ECS", k = "BPLCON1F_PF2H2", v = "(1<<6)" },
+        { c = "ECS", k = "BPLCON1F_PF2H1", v = "(1<<5)" },
+        { c = "ECS", k = "BPLCON1F_PF2H0", v = "(1<<4)" },
+        { c = "ECS", k = "BPLCON1F_PF1H3", v = "(1<<3)" },
+        { c = "ECS", k = "BPLCON1F_PF1H2", v = "(1<<2)" },
+        { c = "ECS", k = "BPLCON1F_PF1H1", v = "(1<<1)" },
+        { c = "ECS", k = "BPLCON1F_PF1H0", v = "(1<<0)" },
+    ],
+    [
+        { k = "BPLCON2B_ZDBPSEL2", v = "14" },
+        { k = "BPLCON2B_ZDBPSEL1", v = "13" },
+        { k = "BPLCON2B_ZDBPSEL0", v = "12" },
+        { k = "BPLCON2B_ZDBPEN", v = "11" },
+        { k = "BPLCON2B_ZDCTEN", v = "10" },
+        { k = "BPLCON2B_KILLEHB", v = "9" },
+        { k = "BPLCON2B_RDRAM", v = "8" },
+        { k = "BPLCON2B_SOGEN", v = "7" },
+        { k = "BPLCON2B_PF2PRI", v = "6" },
+        { k = "BPLCON2B_PF2P2", v = "5" },
+        { k = "BPLCON2B_PF2P1", v = "4" },
+        { k = "BPLCON2B_PF2P0", v = "3" },
+        { k = "BPLCON2B_PF1P2", v = "2" },
+        { k = "BPLCON2B_PF1P1", v = "1" },
+        { k = "BPLCON2B_PF1P0", v = "0" },
+        { k = "BPLCON2F_ZDBPSEL2", v = "(1<<14)" },
+        { k = "BPLCON2F_ZDBPSEL1", v = "(1<<13)" },
+        { k = "BPLCON2F_ZDBPSEL0", v = "(1<<12)" },
+        { k = "BPLCON2F_ZDBPEN", v = "(1<<11)" },
+        { k = "BPLCON2F_ZDCTEN", v = "(1<<10)" },
+        { k = "BPLCON2F_KILLEHB", v = "(1<<9)" },
+        { k = "BPLCON2F_RDRAM", v = "(1<<8)" },
+        { k = "BPLCON2F_SOGEN", v = "(1<<7)" },
+        { k = "BPLCON2F_PF2PRI", v = "(1<<6)" },
+        { k = "BPLCON2F_PF2P2", v = "(1<<5)" },
+        { k = "BPLCON2F_PF2P1", v = "(1<<4)" },
+        { k = "BPLCON2F_PF2P0", v = "(1<<3)" },
+        { k = "BPLCON2F_PF1P2", v = "(1<<2)" },
+        { k = "BPLCON2F_PF1P1", v = "(1<<1)" },
+        { k = "BPLCON2F_PF1P0", v = "(1<<0)" },
+    ],
+    [
+        { c = "AGA", k = "BPLCON3B_BANK2", v = "15" },
+        { c = "AGA", k = "BPLCON3B_BANK1", v = "14" },
+        { c = "AGA", k = "BPLCON3B_BANK0", v = "13" },
+        { c = "AGA", k = "BPLCON3B_PF2OF2", v = "12" },
+        { c = "AGA", k = "BPLCON3B_PF2OF1", v = "11" },
+        { c = "AGA", k = "BPLCON3B_PF2OF0", v = "10" },
+        { c = "AGA", k = "BPLCON3B_LOCT", v = "9" },
+        { c = "AGA", k = "BPLCON3B_SPRES1", v = "7" },
+        { c = "AGA", k = "BPLCON3B_SPRES0", v = "6" },
+        { k = "BPLCON3B_BRDRBLNK", v = "5" },
+        { k = "BPLCON3B_BRDNTRAN", v = "4" },
+        { c = "AGA", k = "BPLCON3B_ZDCLKEN", v = "2" },
+        { c = "AGA", k = "BPLCON3B_BRDSPRT", v = "1" },
+        { c = "AGA", k = "BPLCON3B_EXTBLKEN", v = "0" },
+        { c = "AGA", k = "BPLCON3F_BANK2", v = "(1<<15)" },
+        { c = "AGA", k = "BPLCON3F_BANK1", v = "(1<<14)" },
+        { c = "AGA", k = "BPLCON3F_BANK0", v = "(1<<13)" },
+        { c = "AGA", k = "BPLCON3F_PF2OF2", v = "(1<<12)" },
+        { c = "AGA", k = "BPLCON3F_PF2OF1", v = "(1<<11)" },
+        { c = "AGA", k = "BPLCON3F_PF2OF0", v = "(1<<10)" },
+        { c = "AGA", k = "BPLCON3F_LOCT", v = "(1<<9)" },
+        { c = "AGA", k = "BPLCON3F_SPRES1", v = "(1<<7)" },
+        { c = "AGA", k = "BPLCON3F_SPRES0", v = "(1<<6)" },
+        { k = "BPLCON3F_BRDRBLNK", v = "(1<<5)" },
+        { k = "BPLCON3F_BRDNTRAN", v = "(1<<4)" },
+        { c = "AGA", k = "BPLCON3F_ZDCLKEN", v = "(1<<2)" },
+        { c = "AGA", k = "BPLCON3F_BRDSPRT", v = "(1<<1)" },
+        { c = "AGA", k = "BPLCON3F_EXTBLKEN", v = "(1<<0)" },
+    ],
+    [
+        { c = "AGA", k = "BPLCON4B_BPLAM7", v = "15" },
+        { c = "AGA", k = "BPLCON4B_BPLAM6", v = "14" },
+        { c = "AGA", k = "BPLCON4B_BPLAM5", v = "13" },
+        { c = "AGA", k = "BPLCON4B_BPLAM4", v = "12" },
+        { c = "AGA", k = "BPLCON4B_BPLAM3", v = "11" },
+        { c = "AGA", k = "BPLCON4B_BPLAM2", v = "10" },
+        { c = "AGA", k = "BPLCON4B_BPLAM1", v = "9" },
+        { c = "AGA", k = "BPLCON4B_BPLAM0", v = "8" },
+        { c = "AGA", k = "BPLCON4B_ESPRM3", v = "7" },
+        { c = "AGA", k = "BPLCON4B_ESPRM2", v = "6" },
+        { c = "AGA", k = "BPLCON4B_ESPRM1", v = "5" },
+        { c = "AGA", k = "BPLCON4B_ESPRM0", v = "4" },
+        { c = "AGA", k = "BPLCON4B_OSPRM3", v = "3" },
+        { c = "AGA", k = "BPLCON4B_OSPRM2", v = "2" },
+        { c = "AGA", k = "BPLCON4B_OSPRM1", v = "1" },
+        { c = "AGA", k = "BPLCON4B_OSPRM0", v = "0" },
+        { c = "AGA", k = "BPLCON4F_BPLAM7", v = "(1<<15)" },
+        { c = "AGA", k = "BPLCON4F_BPLAM6", v = "(1<<14)" },
+        { c = "AGA", k = "BPLCON4F_BPLAM5", v = "(1<<13)" },
+        { c = "AGA", k = "BPLCON4F_BPLAM4", v = "(1<<12)" },
+        { c = "AGA", k = "BPLCON4F_BPLAM3", v = "(1<<11)" },
+        { c = "AGA", k = "BPLCON4F_BPLAM2", v = "(1<<10)" },
+        { c = "AGA", k = "BPLCON4F_BPLAM1", v = "(1<<9)" },
+        { c = "AGA", k = "BPLCON4F_BPLAM0", v = "(1<<8)" },
+        { c = "AGA", k = "BPLCON4F_ESPRM3", v = "(1<<7)" },
+        { c = "AGA", k = "BPLCON4F_ESPRM2", v = "(1<<6)" },
+        { c = "AGA", k = "BPLCON4F_ESPRM1", v = "(1<<5)" },
+        { c = "AGA", k = "BPLCON4F_ESPRM0", v = "(1<<4)" },
+        { c = "AGA", k = "BPLCON4F_OSPRM3", v = "(1<<3)" },
+        { c = "AGA", k = "BPLCON4F_OSPRM2", v = "(1<<2)" },
+        { c = "AGA", k = "BPLCON4F_OSPRM1", v = "(1<<1)" },
+        { c = "AGA", k = "BPLCON4F_OSPRM0", v = "(1<<0)" },
+    ],
+]
+
+
+[[sections]]
+name = "BPLxMOD"
+type = "kv"
+comment = """
+Relative address: $108 & $10A
+Read/write:       Write
+Chip:             Agnus
+Function:         Bitplane modulo (odd/even)
+"""
+kv = [
+    [
+        { k = "BPL1MOD", v = "$108" },
+        { k = "BPL2MOD", v = "$10A" },
+    ],
+    [
+        { k = "CUSTOM_BPL1MOD", v = "CUSTOM+BPL1MOD" },
+        { k = "CUSTOM_BPL2MOD", v = "CUSTOM+BPL2MOD" },
+    ],
+]
+
+
+[[sections]]
+name = "BPLxDAT"
+type = "kv"
+comment = """
+Relative address: $110 & $112 & $114 & $116 & 
+                  $118 & $11A & $11C & $11E
+Read/write:       Write
+Chip:             Denise
+Function:         Bitplane x data (par-to-ser)
+"""
+kv = [
+    [
+        { k = "BPL1DAT", v = "$110" },
+        { k = "BPL2DAT", v = "$112" },
+        { k = "BPL3DAT", v = "$114" },
+        { k = "BPL4DAT", v = "$116" },
+        { k = "BPL5DAT", v = "$118" },
+        { k = "BPL6DAT", v = "$11A" },
+        { c = "AGA", k = "BPL7DAT", v = "$11C" },
+        { c = "AGA", k = "BPL8DAT", v = "$11E" },
+    ],
+    [
+        { k = "CUSTOM_BPL1DAT", v = "CUSTOM+BPL1DAT" },
+        { k = "CUSTOM_BPL2DAT", v = "CUSTOM+BPL2DAT" },
+        { k = "CUSTOM_BPL3DAT", v = "CUSTOM+BPL3DAT" },
+        { k = "CUSTOM_BPL4DAT", v = "CUSTOM+BPL4DAT" },
+        { k = "CUSTOM_BPL5DAT", v = "CUSTOM+BPL5DAT" },
+        { k = "CUSTOM_BPL6DAT", v = "CUSTOM+BPL6DAT" },
+        { c = "AGA", k = "CUSTOM_BPL7DAT", v = "CUSTOM+BPL7DAT" },
+        { c = "AGA", k = "CUSTOM_BPL8DAT", v = "CUSTOM+BPL8DAT" },
+    ],
+]
+
+
+[[sections]]
+name = "SPRITE CONTROL REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "SPRxPT (SPRxPTH + SPRxPTL)"
+type = "kv"
+comment = """
+Relative address: $120 + $122 & $124 + $126 &
+                  $128 + $12A & $12C + $12E &
+                  $130 + $132 & $134 + $136 &
+                  $138 + $13A & $13C + $13E &                                    
+Read/write:       Write
+Chip:             Agnus
+Function:         Sprite x pointer
+"""
+kv = [
+    [
+        { k = "SPR0PT", v = "$120" },
+        { k = "SPR0PTH", v = "SPR0PT" },
+        { k = "SPR0PTL", v = "$122" },
+        { k = "SPR1PT", v = "$124" },
+        { k = "SPR1PTH", v = "SPR1PT" },
+        { k = "SPR1PTL", v = "$126" },
+        { k = "SPR2PT", v = "$128" },
+        { k = "SPR2PTH", v = "SPR2PT" },
+        { k = "SPR2PTL", v = "$12A" },
+        { k = "SPR3PT", v = "$12C" },
+        { k = "SPR3PTH", v = "SPR3PT" },
+        { k = "SPR3PTL", v = "$12E" },
+        { k = "SPR4PT", v = "$130" },
+        { k = "SPR4PTH", v = "SPR4PT" },
+        { k = "SPR4PTL", v = "$132" },
+        { k = "SPR5PT", v = "$134" },
+        { k = "SPR5PTH", v = "SPR5PT" },
+        { k = "SPR5PTL", v = "$136" },
+        { k = "SPR6PT", v = "$138" },
+        { k = "SPR6PTH", v = "SPR6PT" },
+        { k = "SPR6PTL", v = "$13A" },
+        { k = "SPR7PT", v = "$13C" },
+        { k = "SPR7PTH", v = "SPR7PT" },
+        { k = "SPR7PTL", v = "$13E" },
+    ],
+    [
+        { k = "CUSTOM_SPR0PT", v = "CUSTOM+SPR0PT" },
+        { k = "CUSTOM_SPR0PTH", v = "CUSTOM+SPR0PTH" },
+        { k = "CUSTOM_SPR0PTL", v = "CUSTOM+SPR0PTL" },
+        { k = "CUSTOM_SPR1PT", v = "CUSTOM+SPR1PT" },
+        { k = "CUSTOM_SPR1PTH", v = "CUSTOM+SPR1PTH" },
+        { k = "CUSTOM_SPR1PTL", v = "CUSTOM+SPR1PTL" },
+        { k = "CUSTOM_SPR2PT", v = "CUSTOM+SPR2PT" },
+        { k = "CUSTOM_SPR2PTH", v = "CUSTOM+SPR2PTH" },
+        { k = "CUSTOM_SPR2PTL", v = "CUSTOM+SPR2PTL" },
+        { k = "CUSTOM_SPR3PT", v = "CUSTOM+SPR3PT" },
+        { k = "CUSTOM_SPR3PTH", v = "CUSTOM+SPR3PTH" },
+        { k = "CUSTOM_SPR3PTL", v = "CUSTOM+SPR3PTL" },
+        { k = "CUSTOM_SPR4PT", v = "CUSTOM+SPR4PT" },
+        { k = "CUSTOM_SPR4PTH", v = "CUSTOM+SPR4PTH" },
+        { k = "CUSTOM_SPR4PTL", v = "CUSTOM+SPR4PTL" },
+        { k = "CUSTOM_SPR5PT", v = "CUSTOM+SPR5PT" },
+        { k = "CUSTOM_SPR5PTH", v = "CUSTOM+SPR5PTH" },
+        { k = "CUSTOM_SPR5PTL", v = "CUSTOM+SPR5PTL" },
+        { k = "CUSTOM_SPR6PT", v = "CUSTOM+SPR6PT" },
+        { k = "CUSTOM_SPR6PTH", v = "CUSTOM+SPR6PTH" },
+        { k = "CUSTOM_SPR6PTL", v = "CUSTOM+SPR6PTL" },
+        { k = "CUSTOM_SPR7PT", v = "CUSTOM+SPR7PT" },
+        { k = "CUSTOM_SPR7PTH", v = "CUSTOM+SPR7PTH" },
+        { k = "CUSTOM_SPR7PTL", v = "CUSTOM+SPR7PTL" },
+    ],
+]
+
+
+[[sections]]
+name = "SPRxPOS"
+type = "kv"
+comment = """
+Relative address: $140 & $148 & $150 & $158 &                                    
+                  $160 & $168 & $170 & $178
+Read/write:       Write
+Chip:             Agnus & Denise
+Function:         Sprite x start position
+"""
+kv = [
+    [
+        { k = "SPR0POS", v = "$140" },
+        { k = "SPR1POS", v = "$148" },
+        { k = "SPR2POS", v = "$150" },
+        { k = "SPR3POS", v = "$158" },
+        { k = "SPR4POS", v = "$160" },
+        { k = "SPR5POS", v = "$168" },
+        { k = "SPR6POS", v = "$170" },
+        { k = "SPR7POS", v = "$178" },
+    ],
+    [
+        { k = "CUSTOM_SPR0POS", v = "CUSTOM+SPR0POS" },
+        { k = "CUSTOM_SPR1POS", v = "CUSTOM+SPR1POS" },
+        { k = "CUSTOM_SPR2POS", v = "CUSTOM+SPR2POS" },
+        { k = "CUSTOM_SPR3POS", v = "CUSTOM+SPR3POS" },
+        { k = "CUSTOM_SPR4POS", v = "CUSTOM+SPR4POS" },
+        { k = "CUSTOM_SPR5POS", v = "CUSTOM+SPR5POS" },
+        { k = "CUSTOM_SPR6POS", v = "CUSTOM+SPR6POS" },
+        { k = "CUSTOM_SPR7POS", v = "CUSTOM+SPR7POS" },
+    ],
+    [
+        { k = "SPRxPOSB_SV7", v = "15" },
+        { k = "SPRxPOSB_SV6", v = "14" },
+        { k = "SPRxPOSB_SV5", v = "13" },
+        { k = "SPRxPOSB_SV4", v = "12" },
+        { k = "SPRxPOSB_SV3", v = "11" },
+        { k = "SPRxPOSB_SV2", v = "10" },
+        { k = "SPRxPOSB_SV1", v = "9" },
+        { k = "SPRxPOSB_SV0", v = "8" },
+        { k = "SPRxPOSB_SH8", v = "7" },
+        { k = "SPRxPOSB_SH7", v = "6" },
+        { k = "SPRxPOSB_SH6", v = "5" },
+        { k = "SPRxPOSB_SH5", v = "4" },
+        { k = "SPRxPOSB_SH4", v = "3" },
+        { k = "SPRxPOSB_SH3", v = "2" },
+        { k = "SPRxPOSB_SH2", v = "1" },
+        { k = "SPRxPOSB_SH1", v = "0" },
+        { k = "SPRxPOSF_SV7", v = "(1<<15)" },
+        { k = "SPRxPOSF_SV6", v = "(1<<14)" },
+        { k = "SPRxPOSF_SV5", v = "(1<<13)" },
+        { k = "SPRxPOSF_SV4", v = "(1<<12)" },
+        { k = "SPRxPOSF_SV3", v = "(1<<11)" },
+        { k = "SPRxPOSF_SV2", v = "(1<<10)" },
+        { k = "SPRxPOSF_SV1", v = "(1<<9)" },
+        { k = "SPRxPOSF_SV0", v = "(1<<8)" },
+        { k = "SPRxPOSF_SH8", v = "(1<<7)" },
+        { k = "SPRxPOSF_SH7", v = "(1<<6)" },
+        { k = "SPRxPOSF_SH6", v = "(1<<5)" },
+        { k = "SPRxPOSF_SH5", v = "(1<<4)" },
+        { k = "SPRxPOSF_SH4", v = "(1<<3)" },
+        { k = "SPRxPOSF_SH3", v = "(1<<2)" },
+        { k = "SPRxPOSF_SH2", v = "(1<<1)" },
+        { k = "SPRxPOSF_SH1", v = "(1<<0)" },
+    ],
+]
+
+
+[[sections]]
+name = "SPRxCTL"
+type = "kv"
+comment = """
+Relative address: $142 & $14A & $152 & $15A &                                    
+                  $162 & $16A & $172 & $17A
+Read/write:       Write
+Chip:             Agnus & Denise
+Function:         Sprite x control
+"""
+kv = [
+    [
+        { k = "SPR0CTL", v = "$142" },
+        { k = "SPR1CTL", v = "$14A" },
+        { k = "SPR2CTL", v = "$152" },
+        { k = "SPR3CTL", v = "$15A" },
+        { k = "SPR4CTL", v = "$162" },
+        { k = "SPR5CTL", v = "$16A" },
+        { k = "SPR6CTL", v = "$172" },
+        { k = "SPR7CTL", v = "$17A" },
+    ],
+    [
+        { k = "CUSTOM_SPR0CTL", v = "CUSTOM+SPR0CTL" },
+        { k = "CUSTOM_SPR1CTL", v = "CUSTOM+SPR1CTL" },
+        { k = "CUSTOM_SPR2CTL", v = "CUSTOM+SPR2CTL" },
+        { k = "CUSTOM_SPR3CTL", v = "CUSTOM+SPR3CTL" },
+        { k = "CUSTOM_SPR4CTL", v = "CUSTOM+SPR4CTL" },
+        { k = "CUSTOM_SPR5CTL", v = "CUSTOM+SPR5CTL" },
+        { k = "CUSTOM_SPR6CTL", v = "CUSTOM+SPR6CTL" },
+        { k = "CUSTOM_SPR7CTL", v = "CUSTOM+SPR7CTL" },
+    ],
+    [
+        { k = "SPRxCTLB_EV7", v = "15" },
+        { k = "SPRxCTLB_EV6", v = "14" },
+        { k = "SPRxCTLB_EV5", v = "13" },
+        { k = "SPRxCTLB_EV4", v = "12" },
+        { k = "SPRxCTLB_EV3", v = "11" },
+        { k = "SPRxCTLB_EV2", v = "10" },
+        { k = "SPRxCTLB_EV1", v = "9" },
+        { k = "SPRxCTLB_EV0", v = "8" },
+        { k = "SPRxCTLB_ATT", v = "7" },
+        { c = "AGA", k = "SPRxCTLB_SV9", v = "6" },
+        { c = "AGA", k = "SPRxCTLB_EV9", v = "5" },
+        { k = "SPRxCTLB_SHSH1", v = "4" },
+        { k = "SPRxCTLB_SHSH0", v = "3" },
+        { k = "SPRxCTLB_SV8", v = "2" },
+        { k = "SPRxCTLB_EV8", v = "1" },
+        { k = "SPRxCTLB_SH0", v = "0" },
+        { k = "SPRxCTLF_EV7", v = "(1<<15)" },
+        { k = "SPRxCTLF_EV6", v = "(1<<14)" },
+        { k = "SPRxCTLF_EV5", v = "(1<<13)" },
+        { k = "SPRxCTLF_EV4", v = "(1<<12)" },
+        { k = "SPRxCTLF_EV3", v = "(1<<11)" },
+        { k = "SPRxCTLF_EV2", v = "(1<<10)" },
+        { k = "SPRxCTLF_EV1", v = "(1<<9)" },
+        { k = "SPRxCTLF_EV0", v = "(1<<8)" },
+        { k = "SPRxCTLF_ATT", v = "(1<<7)" },
+        { c = "AGA", k = "SPRxCTLF_SV9", v = "(1<<6)" },
+        { c = "AGA", k = "SPRxCTLF_EV9", v = "(1<<5)" },
+        { k = "SPRxCTLF_SHSH1", v = "(1<<4)" },
+        { k = "SPRxCTLF_SHSH0", v = "(1<<3)" },
+        { k = "SPRxCTLF_SV8", v = "(1<<2)" },
+        { k = "SPRxCTLF_EV8", v = "(1<<1)" },
+        { k = "SPRxCTLF_SH0", v = "(1<<0)" },
+    ],
+]
+
+
+[[sections]]
+name = "SPRxDATA + SPRxDATB"
+type = "kv"
+comment = """
+Relative address: $144 + $146 & $14C + $14E &
+                  $154 + $156 & $15C + $15E &
+                  $164 + $166 & $16C + $16E &
+                  $174 + $176 & $17C + $17E
+Read/write:       Write
+Chip:             Denise
+Function:         Sprite x data
+"""
+kv = [
+    [
+        { k = "SPR0DATA", v = "$144" },
+        { k = "SPR0DATB", v = "$146" },
+        { k = "SPR1DATA", v = "$14C" },
+        { k = "SPR1DATB", v = "$14E" },
+        { k = "SPR2DATA", v = "$154" },
+        { k = "SPR2DATB", v = "$156" },
+        { k = "SPR3DATA", v = "$15C" },
+        { k = "SPR3DATB", v = "$15E" },
+        { k = "SPR4DATA", v = "$164" },
+        { k = "SPR4DATB", v = "$166" },
+        { k = "SPR5DATA", v = "$16C" },
+        { k = "SPR5DATB", v = "$16E" },
+        { k = "SPR6DATA", v = "$174" },
+        { k = "SPR6DATB", v = "$176" },
+        { k = "SPR7DATA", v = "$17C" },
+        { k = "SPR7DATB", v = "$17E" },
+    ],
+    [
+        { k = "CUSTOM_SPR0DATA", v = "CUSTOM+SPR0DATA" },
+        { k = "CUSTOM_SPR0DATB", v = "CUSTOM+SPR0DATB" },
+        { k = "CUSTOM_SPR1DATA", v = "CUSTOM+SPR1DATA" },
+        { k = "CUSTOM_SPR1DATB", v = "CUSTOM+SPR1DATB" },
+        { k = "CUSTOM_SPR2DATA", v = "CUSTOM+SPR2DATA" },
+        { k = "CUSTOM_SPR2DATB", v = "CUSTOM+SPR2DATB" },
+        { k = "CUSTOM_SPR3DATA", v = "CUSTOM+SPR3DATA" },
+        { k = "CUSTOM_SPR3DATB", v = "CUSTOM+SPR3DATB" },
+        { k = "CUSTOM_SPR4DATA", v = "CUSTOM+SPR4DATA" },
+        { k = "CUSTOM_SPR4DATB", v = "CUSTOM+SPR4DATB" },
+        { k = "CUSTOM_SPR5DATA", v = "CUSTOM+SPR5DATA" },
+        { k = "CUSTOM_SPR5DATB", v = "CUSTOM+SPR5DATB" },
+        { k = "CUSTOM_SPR6DATA", v = "CUSTOM+SPR6DATA" },
+        { k = "CUSTOM_SPR6DATB", v = "CUSTOM+SPR6DATB" },
+        { k = "CUSTOM_SPR7DATA", v = "CUSTOM+SPR7DATA" },
+        { k = "CUSTOM_SPR7DATB", v = "CUSTOM+SPR7DATB" },
+    ],
+]
+
+
+[[sections]]
+name = "COLOR REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "COLORxx"
+type = "kv"
+comment = """
+Relative address: $180 & $182 & $184 & $186 &
+                  $188 & $18A & $18C & $18E &
+                  $190 & $192 & $194 & $196 &
+                  $198 & $19A & $19C & $19E &
+                  $1A0 & $1A2 & $1A4 & $1A6 &
+                  $1A8 & $1AA & $1AC & $1AE &
+                  $1B0 & $1B2 & $1B4 & $1B6 &
+                  $1B8 & $1BA & $1BC & $1BE
+Read/write:       Write
+Chip:             Denise
+Function:         Color table
+"""
+kv = [
+    [
+        { k = "COLOR00", v = "$180" },
+        { k = "COLOR01", v = "$182" },
+        { k = "COLOR02", v = "$184" },
+        { k = "COLOR03", v = "$186" },
+        { k = "COLOR04", v = "$188" },
+        { k = "COLOR05", v = "$18A" },
+        { k = "COLOR06", v = "$18C" },
+        { k = "COLOR07", v = "$18E" },
+        { k = "COLOR08", v = "$190" },
+        { k = "COLOR09", v = "$192" },
+        { k = "COLOR10", v = "$194" },
+        { k = "COLOR11", v = "$196" },
+        { k = "COLOR12", v = "$198" },
+        { k = "COLOR13", v = "$19A" },
+        { k = "COLOR14", v = "$19C" },
+        { k = "COLOR15", v = "$19E" },
+        { k = "COLOR16", v = "$1A0" },
+        { k = "COLOR17", v = "$1A2" },
+        { k = "COLOR18", v = "$1A4" },
+        { k = "COLOR19", v = "$1A6" },
+        { k = "COLOR20", v = "$1A8" },
+        { k = "COLOR21", v = "$1AA" },
+        { k = "COLOR22", v = "$1AC" },
+        { k = "COLOR23", v = "$1AE" },
+        { k = "COLOR24", v = "$1B0" },
+        { k = "COLOR25", v = "$1B2" },
+        { k = "COLOR26", v = "$1B4" },
+        { k = "COLOR27", v = "$1B6" },
+        { k = "COLOR28", v = "$1B8" },
+        { k = "COLOR29", v = "$1BA" },
+        { k = "COLOR30", v = "$1BC" },
+        { k = "COLOR31", v = "$1BE" },
+    ],
+    [
+        { k = "CUSTOM_COLOR00", v = "CUSTOM+COLOR00" },
+        { k = "CUSTOM_COLOR01", v = "CUSTOM+COLOR01" },
+        { k = "CUSTOM_COLOR02", v = "CUSTOM+COLOR02" },
+        { k = "CUSTOM_COLOR03", v = "CUSTOM+COLOR03" },
+        { k = "CUSTOM_COLOR04", v = "CUSTOM+COLOR04" },
+        { k = "CUSTOM_COLOR05", v = "CUSTOM+COLOR05" },
+        { k = "CUSTOM_COLOR06", v = "CUSTOM+COLOR06" },
+        { k = "CUSTOM_COLOR07", v = "CUSTOM+COLOR07" },
+        { k = "CUSTOM_COLOR08", v = "CUSTOM+COLOR08" },
+        { k = "CUSTOM_COLOR09", v = "CUSTOM+COLOR09" },
+        { k = "CUSTOM_COLOR10", v = "CUSTOM+COLOR10" },
+        { k = "CUSTOM_COLOR11", v = "CUSTOM+COLOR11" },
+        { k = "CUSTOM_COLOR12", v = "CUSTOM+COLOR12" },
+        { k = "CUSTOM_COLOR13", v = "CUSTOM+COLOR13" },
+        { k = "CUSTOM_COLOR14", v = "CUSTOM+COLOR14" },
+        { k = "CUSTOM_COLOR15", v = "CUSTOM+COLOR15" },
+        { k = "CUSTOM_COLOR16", v = "CUSTOM+COLOR16" },
+        { k = "CUSTOM_COLOR17", v = "CUSTOM+COLOR17" },
+        { k = "CUSTOM_COLOR18", v = "CUSTOM+COLOR18" },
+        { k = "CUSTOM_COLOR19", v = "CUSTOM+COLOR19" },
+        { k = "CUSTOM_COLOR20", v = "CUSTOM+COLOR20" },
+        { k = "CUSTOM_COLOR21", v = "CUSTOM+COLOR21" },
+        { k = "CUSTOM_COLOR22", v = "CUSTOM+COLOR22" },
+        { k = "CUSTOM_COLOR23", v = "CUSTOM+COLOR23" },
+        { k = "CUSTOM_COLOR24", v = "CUSTOM+COLOR24" },
+        { k = "CUSTOM_COLOR25", v = "CUSTOM+COLOR25" },
+        { k = "CUSTOM_COLOR26", v = "CUSTOM+COLOR26" },
+        { k = "CUSTOM_COLOR27", v = "CUSTOM+COLOR27" },
+        { k = "CUSTOM_COLOR28", v = "CUSTOM+COLOR28" },
+        { k = "CUSTOM_COLOR29", v = "CUSTOM+COLOR29" },
+        { k = "CUSTOM_COLOR30", v = "CUSTOM+COLOR30" },
+        { k = "CUSTOM_COLOR31", v = "CUSTOM+COLOR31" },
+    ],
+]
+
+
+[[sections]]
+name = "MISC REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "TODO"
+type = "block"
+comment = """
+$002 = DMACONR
+$004 = VPOSR
+$006 = VHPOSR
+$02A = VPOSW
+$02C = VHPOSW
+$00A = JOY0DAT
+$00C = JOY1DAT
+$00E = CLXDAT
+$012 = POT0DAT
+$014 = POT1DAT
+$016 = POTINP
+$018 = SERDATR
+$01C = INTENAR
+$01E = INTREQR
+$028 = REFPTR
+$030 = SERDAT
+$032 = SERPER
+$034 = POTGO
+$036 = JOYTEST
+$038 = STREQU
+$03A = STRVBL
+$03C = STRHOR
+$03E = STRLONG
+$078 = SPRHDAT 
+$07A = BPLHDAT 
+$07C = DENISEID
+$08E = DIWSTRT
+$090 = DIWSTOP
+$092 = DDFSTRT
+$094 = DDFSTOP
+$096 = DMACON
+$098 = CLXCON
+$10E = CLXCON2
+$09A = INTENA
+$09C = INTREQ
+$1C0 = HTOTAL  
+$1C2 = HSSTOP  
+$1C4 = HBSTRT  
+$1C6 = HBSTOP  
+$1C8 = VTOTAL  
+$1CA = VSSTOP  
+$1CC = VBSTRT  
+$1CE = VBSTOP  
+$1D0 = SPRHSTRT
+$1D2 = SPRHSTOP
+$1D4 = BPLHSTRT
+$1D6 = BPLHSTOP
+$1D8 = HHPOSW  
+$1DA = HHPOSR  
+$1DC = BEAMCON0
+$1DE = HSSTRT  
+$1E0 = VSSTRT  
+$1E2 = HCENTER 
+$1E4 = DIWHIGH 
+$1E6 = BPLHMOD 
+$1E8 = SPRHPTH 
+$1EA = SPRHPTL 
+$1EC = BPLHPTH 
+$1EE = BPLHPTL 
+$1FC = FMODE   
+$1FE = NOOP
+"""
+
+
+[[sections]]
+name = "DUMMY REGISTERS"
+type = "line"
+
+
+[[sections]]
+name = "BLTDDAT"
+type = "kv"
+comment = """
+Relative address: $000
+Read/write:       -
+Chip:             Agnus
+Function:         Blitter destination data register
+"""
+kv = [
+    [
+        { k = "BLTDDAT", v = "$000" },
+    ],
+    [
+        { k = "CUSTOM_BLTDDAT", v = "CUSTOM+BLTDDAT" },
+    ],
+]
+
+
+[[sections]]
+name = "DSKDATR"
+type = "kv"
+comment = """
+Relative address: $008
+Read/write:       -
+Chip:             Paula
+Function:         Disk DMA data read
+"""
+kv = [
+    [
+        { k = "DSKDATR", v = "$008" },
+    ],
+    [
+        { k = "CUSTOM_DSKDATR", v = "CUSTOM+DSKDATR" },
+    ],
+]
+
+
+[[sections]]
+name = "COPINS"
+type = "kv"
+comment = """
+Relative address: $08C
+Read/write:       -
+Chip:             Agnus
+Function:         Copper instruction fetch identify
+"""
+kv = [
+    [
+        { k = "COPINS", v = "$08C" },
+    ],
+    [
+        { k = "CUSTOM_COPINS", v = "CUSTOM+COPINS" },
+    ],
+]
+
+
+[[sections]]
+name = "CUSTOM SECTION END"
+type = "line"
